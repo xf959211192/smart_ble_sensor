@@ -17,6 +17,16 @@
 # SharedPreferences
 -keep class androidx.preference.** { *; }
 
+# Google Play Core (解决构建错误)
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
+
+# Flutter引擎相关
+-keep class io.flutter.embedding.engine.** { *; }
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+
 # 保留注解
 -keepattributes *Annotation*
 

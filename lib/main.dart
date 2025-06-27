@@ -5,11 +5,11 @@ import 'providers/bluetooth_provider.dart';
 import 'providers/sensor_data_provider.dart';
 
 void main() {
-  runApp(const SmartSenseApp());
+  runApp(const SmartBLESensorApp());
 }
 
-class SmartSenseApp extends StatelessWidget {
-  const SmartSenseApp({super.key});
+class SmartBLESensorApp extends StatelessWidget {
+  const SmartBLESensorApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class SmartSenseApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SensorDataProvider()),
       ],
       child: MaterialApp(
-        title: 'SmartSense',
+        title: 'SmartBLESensor',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF2196F3), // 蓝色主题

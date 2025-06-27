@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
-import 'package:smart_sense/services/bluetooth_service.dart';
-import 'package:smart_sense/models/models.dart';
+import 'package:smartblesensor/services/bluetooth_service.dart';
+import 'package:smartblesensor/models/models.dart';
 
 // 生成 Mock 类
 @GenerateMocks([

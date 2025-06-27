@@ -7,12 +7,12 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smart_sense/main.dart';
+import 'package:smartblesensor/main.dart';
 
 void main() {
-  testWidgets('SmartSense app smoke test', (WidgetTester tester) async {
+  testWidgets('SmartBLESensor app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const SmartSenseApp());
+    await tester.pumpWidget(const SmartBLESensorApp());
 
     // Wait for the app to settle
     await tester.pumpAndSettle();
