@@ -1,0 +1,46 @@
+# GitHub Pages 配置文件
+
+# 网站基本信息
+title: "SmartBLESensor"
+description: "智能蓝牙传感器监控应用 - 专业级的传感器数据监控解决方案"
+url: "https://xf959211192.github.io"
+baseurl: "/smart_ble_sensor"
+
+# 作者信息
+author:
+  name: "SmartBLESensor Team"
+  email: "support@smartblesensor.com"
+
+# SEO设置
+lang: "zh-CN"
+timezone: "Asia/Shanghai"
+
+# 社交媒体
+social:
+  github: "xf959211192/smart_ble_sensor"
+
+# 插件
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# 排除文件
+exclude:
+  - README.md
+  - PLACEHOLDER_IMAGES.md
+
+# 包含文件
+include:
+  - _config.yml
+
+# 主题设置
+theme: minima
+
+# 自定义变量
+app:
+  name: "SmartBLESensor"
+  version: "v1.0.0"
+  package: "com.xf17.smartblesensor"
+  size: "25.47 MB"
+  min_android: "5.0"
+  target_android: "14"
