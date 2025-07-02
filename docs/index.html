@@ -1,364 +1,453 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SmartBLESensor - 智能蓝牙传感器监控应用</title>
-    <meta name="description" content="专业级蓝牙传感器数据监控应用，支持实时数据采集、可视化图表和数据管理">
-    <meta name="keywords" content="蓝牙传感器,BLE,数据监控,ESP32,Flutter,Android">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
+    <meta
+      name="description"
+      content="专业级蓝牙传感器数据监控应用，支持实时数据采集、可视化图表和数据管理"
+    />
+    <meta
+      name="keywords"
+      content="蓝牙传感器,BLE,数据监控,ESP32,Flutter,Android"
+    />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
     <!-- 导航栏 -->
     <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <img src="images/app-icon.png" alt="SmartBLESensor" class="logo-icon">
-                <span class="logo-text">SmartBLESensor</span>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#home" class="nav-link">首页</a></li>
-                <li><a href="#features" class="nav-link">功能</a></li>
-                <li><a href="#screenshots" class="nav-link">截图</a></li>
-                <li><a href="#download" class="nav-link">下载</a></li>
-                <li><a href="#support" class="nav-link">支持</a></li>
-            </ul>
-            <div class="hamburger">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </div>
+      <div class="nav-container">
+        <div class="nav-logo">
+          <img
+            src="images/app-icon.png"
+            alt="SmartBLESensor"
+            class="logo-icon"
+          />
+          <span class="logo-text">SmartBLESensor</span>
         </div>
+        <ul class="nav-menu">
+          <li><a href="#home" class="nav-link">首页</a></li>
+          <li><a href="#features" class="nav-link">功能</a></li>
+          <li><a href="#screenshots" class="nav-link">截图</a></li>
+          <li><a href="#download" class="nav-link">下载</a></li>
+          <li><a href="#support" class="nav-link">支持</a></li>
+        </ul>
+        <div class="hamburger">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+      </div>
     </nav>
 
     <!-- 主页横幅 -->
     <section id="home" class="hero">
-        <div class="hero-container">
-            <div class="hero-content">
-                <h1 class="hero-title">SmartBLESensor</h1>
-                <p class="hero-subtitle">智能蓝牙传感器监控应用</p>
-                <p class="hero-description">
-                    专业级的蓝牙传感器数据监控解决方案，支持实时数据采集、可视化图表、数据记录和导出功能。
-                    完美适配ESP32等智能传感器设备。
-                </p>
-                <div class="hero-buttons">
-                    <a href="#download" class="btn btn-primary">
-                        <i class="fas fa-download"></i>
-                        立即下载
-                    </a>
-                    <a href="#features" class="btn btn-secondary">
-                        <i class="fas fa-info-circle"></i>
-                        了解更多
-                    </a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number">v1.0.0</span>
-                        <span class="stat-label">最新版本</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">25.47MB</span>
-                        <span class="stat-label">应用大小</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">Android 5.0+</span>
-                        <span class="stat-label">系统要求</span>
-                    </div>
-                </div>
+      <div class="hero-container">
+        <div class="hero-content">
+          <h1 class="hero-title">SmartBLESensor</h1>
+          <p class="hero-subtitle">智能蓝牙传感器监控应用</p>
+          <p class="hero-description">
+            专业级的蓝牙传感器数据监控解决方案，支持实时数据采集、可视化图表、数据记录和导出功能。
+            完美适配ESP32等智能传感器设备。
+          </p>
+          <div class="hero-buttons">
+            <a href="#download" class="btn btn-primary">
+              <i class="fas fa-download"></i>
+              立即下载
+            </a>
+            <a href="#features" class="btn btn-secondary">
+              <i class="fas fa-info-circle"></i>
+              了解更多
+            </a>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-number">v1.0.0</span>
+              <span class="stat-label">最新版本</span>
             </div>
-            <div class="hero-image">
-                <img src="images/hero-phone.png" alt="SmartBLESensor应用界面" class="phone-mockup">
+            <div class="stat">
+              <span class="stat-number">25.47MB</span>
+              <span class="stat-label">应用大小</span>
             </div>
+            <div class="stat">
+              <span class="stat-number">Android 5.0+</span>
+              <span class="stat-label">系统要求</span>
+            </div>
+          </div>
         </div>
+        <div class="hero-image">
+          <img
+            src="images/hero-phone.png"
+            alt="SmartBLESensor应用界面"
+            class="phone-mockup"
+          />
+        </div>
+      </div>
     </section>
 
     <!-- 功能特性 -->
     <section id="features" class="features">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">核心功能</h2>
-                <p class="section-subtitle">专业级的蓝牙传感器监控解决方案</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-bluetooth-b"></i>
-                    </div>
-                    <h3 class="feature-title">蓝牙BLE 5.0连接</h3>
-                    <p class="feature-description">
-                        支持ESP32等智能传感器设备，自动设备扫描和连接，实时RSSI信号强度监控，稳定的BLE通信协议。
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3 class="feature-title">实时数据监控</h3>
-                    <p class="feature-description">
-                        动态数据图表显示，实时温度数据监控，可配置的数据更新频率，直观的数据可视化界面。
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-database"></i>
-                    </div>
-                    <h3 class="feature-title">数据记录导出</h3>
-                    <p class="feature-description">
-                        本地数据存储，时间戳记录，CSV格式数据导出，完整的数据管理功能。
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <h3 class="feature-title">UUID配置管理</h3>
-                    <p class="feature-description">
-                        灵活的设备UUID配置，服务和特征值自定义，配置保存和加载，多设备配置支持。
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h3 class="feature-title">现代化界面</h3>
-                    <p class="feature-description">
-                        Material Design 3设计风格，直观的用户操作体验，响应式布局设计，专业的应用图标。
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3 class="feature-title">安全可靠</h3>
-                    <p class="feature-description">
-                        严格的权限管理，安全的数据传输，稳定的连接协议，完善的错误处理机制。
-                    </p>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">核心功能</h2>
+          <p class="section-subtitle">专业级的蓝牙传感器监控解决方案</p>
         </div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-bluetooth-b"></i>
+            </div>
+            <h3 class="feature-title">蓝牙BLE 5.0连接</h3>
+            <p class="feature-description">
+              支持ESP32等智能传感器设备，自动设备扫描和连接，实时RSSI信号强度监控，稳定的BLE通信协议。
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="feature-title">实时数据监控</h3>
+            <p class="feature-description">
+              动态数据图表显示，实时温度数据监控，可配置的数据更新频率，直观的数据可视化界面。
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-database"></i>
+            </div>
+            <h3 class="feature-title">数据记录导出</h3>
+            <p class="feature-description">
+              本地数据存储，时间戳记录，CSV格式数据导出，完整的数据管理功能。
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-cogs"></i>
+            </div>
+            <h3 class="feature-title">UUID配置管理</h3>
+            <p class="feature-description">
+              灵活的设备UUID配置，服务和特征值自定义，配置保存和加载，多设备配置支持。
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <h3 class="feature-title">现代化界面</h3>
+            <p class="feature-description">
+              Material Design
+              3设计风格，直观的用户操作体验，响应式布局设计，专业的应用图标。
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="feature-title">安全可靠</h3>
+            <p class="feature-description">
+              严格的权限管理，安全的数据传输，稳定的连接协议，完善的错误处理机制。
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 技术规格 -->
     <section class="tech-specs">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">技术规格</h2>
-                <p class="section-subtitle">基于现代技术栈构建的专业应用</p>
-            </div>
-            <div class="specs-grid">
-                <div class="spec-category">
-                    <h3 class="spec-title">开发框架</h3>
-                    <ul class="spec-list">
-                        <li><strong>Flutter 3.x</strong> - 跨平台UI框架</li>
-                        <li><strong>Dart 3.x</strong> - 现代编程语言</li>
-                        <li><strong>Material Design 3</strong> - 设计系统</li>
-                        <li><strong>Provider</strong> - 状态管理</li>
-                    </ul>
-                </div>
-                <div class="spec-category">
-                    <h3 class="spec-title">核心依赖</h3>
-                    <ul class="spec-list">
-                        <li><strong>flutter_blue_plus</strong> - BLE通信</li>
-                        <li><strong>fl_chart</strong> - 数据图表</li>
-                        <li><strong>permission_handler</strong> - 权限管理</li>
-                        <li><strong>shared_preferences</strong> - 本地存储</li>
-                    </ul>
-                </div>
-                <div class="spec-category">
-                    <h3 class="spec-title">系统要求</h3>
-                    <ul class="spec-list">
-                        <li><strong>Android 5.0+</strong> - 最低版本</li>
-                        <li><strong>Android 14</strong> - 目标版本</li>
-                        <li><strong>ARM64/ARM32/x86_64</strong> - 架构支持</li>
-                        <li><strong>蓝牙4.0+</strong> - 硬件要求</li>
-                    </ul>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">技术规格</h2>
+          <p class="section-subtitle">基于现代技术栈构建的专业应用</p>
         </div>
+        <div class="specs-grid">
+          <div class="spec-category">
+            <h3 class="spec-title">开发框架</h3>
+            <ul class="spec-list">
+              <li><strong>Flutter 3.x</strong> - 跨平台UI框架</li>
+              <li><strong>Dart 3.x</strong> - 现代编程语言</li>
+              <li><strong>Material Design 3</strong> - 设计系统</li>
+              <li><strong>Provider</strong> - 状态管理</li>
+            </ul>
+          </div>
+          <div class="spec-category">
+            <h3 class="spec-title">核心依赖</h3>
+            <ul class="spec-list">
+              <li><strong>flutter_blue_plus</strong> - BLE通信</li>
+              <li><strong>fl_chart</strong> - 数据图表</li>
+              <li><strong>permission_handler</strong> - 权限管理</li>
+              <li><strong>shared_preferences</strong> - 本地存储</li>
+            </ul>
+          </div>
+          <div class="spec-category">
+            <h3 class="spec-title">系统要求</h3>
+            <ul class="spec-list">
+              <li><strong>Android 5.0+</strong> - 最低版本</li>
+              <li><strong>Android 14</strong> - 目标版本</li>
+              <li><strong>ARM64/ARM32/x86_64</strong> - 架构支持</li>
+              <li><strong>蓝牙4.0+</strong> - 硬件要求</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 应用截图 -->
     <section id="screenshots" class="screenshots">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">应用截图</h2>
-                <p class="section-subtitle">直观了解应用界面和功能</p>
-            </div>
-            <div class="screenshots-grid">
-                <div class="screenshot-item">
-                    <img src="images/screenshot-1.png" alt="设备扫描界面" class="screenshot-img">
-                    <h4 class="screenshot-title">设备扫描</h4>
-                    <p class="screenshot-desc">自动扫描附近的BLE设备</p>
-                </div>
-                <div class="screenshot-item">
-                    <img src="images/screenshot-2.png" alt="数据监控界面" class="screenshot-img">
-                    <h4 class="screenshot-title">实时监控</h4>
-                    <p class="screenshot-desc">动态图表显示传感器数据</p>
-                </div>
-                <div class="screenshot-item">
-                    <img src="images/screenshot-3.png" alt="数据记录界面" class="screenshot-img">
-                    <h4 class="screenshot-title">数据记录</h4>
-                    <p class="screenshot-desc">记录和导出历史数据</p>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">应用截图</h2>
+          <p class="section-subtitle">直观了解应用界面和功能</p>
         </div>
+        <div class="screenshots-grid">
+          <div class="screenshot-item">
+            <img
+              src="images/screenshot-1.png"
+              alt="设备扫描界面"
+              class="screenshot-img"
+            />
+            <h4 class="screenshot-title">设备扫描</h4>
+            <p class="screenshot-desc">自动扫描附近的BLE设备</p>
+          </div>
+          <div class="screenshot-item">
+            <img
+              src="images/screenshot-2.png"
+              alt="数据监控界面"
+              class="screenshot-img"
+            />
+            <h4 class="screenshot-title">实时监控</h4>
+            <p class="screenshot-desc">动态图表显示传感器数据</p>
+          </div>
+          <div class="screenshot-item">
+            <img
+              src="images/screenshot-3.png"
+              alt="数据记录界面"
+              class="screenshot-img"
+            />
+            <h4 class="screenshot-title">数据记录</h4>
+            <p class="screenshot-desc">记录和导出历史数据</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 下载区域 -->
     <section id="download" class="download">
-        <div class="container">
-            <div class="download-content">
-                <div class="download-info">
-                    <h2 class="download-title">立即下载</h2>
-                    <p class="download-subtitle">开始您的智能传感器监控之旅</p>
-                    <div class="download-details">
-                        <div class="detail-item">
-                            <i class="fas fa-mobile-alt"></i>
-                            <span>Android 5.0+</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-download"></i>
-                            <span>25.47 MB</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>安全可靠</span>
-                        </div>
-                    </div>
-                    <div class="download-buttons">
-                        <a href="https://github.com/xf959211192/smart_ble_sensor/releases/latest" 
-                           class="btn btn-download" target="_blank">
-                            <i class="fab fa-android"></i>
-                            下载 Android APK
-                        </a>
-                        <a href="https://github.com/xf959211192/smart_ble_sensor" 
-                           class="btn btn-github" target="_blank">
-                            <i class="fab fa-github"></i>
-                            查看源码
-                        </a>
-                    </div>
-                    <p class="download-note">
-                        <i class="fas fa-info-circle"></i>
-                        安装前请启用"未知来源"权限
-                    </p>
-                </div>
-                <div class="download-qr">
-                    <div class="qr-code">
-                        <img src="images/qr-code.png" alt="下载二维码" class="qr-img">
-                        <p class="qr-text">扫码下载</p>
-                    </div>
-                </div>
+      <div class="container">
+        <div class="download-content">
+          <div class="download-info">
+            <h2 class="download-title">立即下载</h2>
+            <p class="download-subtitle">开始您的智能传感器监控之旅</p>
+            <div class="download-details">
+              <div class="detail-item">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Android 5.0+</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-download"></i>
+                <span>25.47 MB</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-shield-alt"></i>
+                <span>安全可靠</span>
+              </div>
             </div>
+            <div class="download-buttons">
+              <a
+                href="https://github.com/xf959211192/smart_ble_sensor/releases/latest"
+                class="btn btn-download"
+                target="_blank"
+              >
+                <i class="fab fa-android"></i>
+                下载 Android APK
+              </a>
+              <a
+                href="https://github.com/xf959211192/smart_ble_sensor"
+                class="btn btn-github"
+                target="_blank"
+              >
+                <i class="fab fa-github"></i>
+                查看源码
+              </a>
+            </div>
+            <p class="download-note">
+              <i class="fas fa-info-circle"></i>
+              安装前请启用"未知来源"权限
+            </p>
+          </div>
+          <div class="download-qr">
+            <div class="qr-code">
+              <img
+                src="images/qr-code.png"
+                alt="下载二维码"
+                class="qr-img"
+                onerror="this.style.display='none'; this.nextElementSibling.innerHTML='<i class=\'fas fa-qrcode\'></i><br>二维码加载中...'"
+              />
+              <p class="qr-text">扫码下载</p>
+            </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- 支持区域 -->
     <section id="support" class="support">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">支持与反馈</h2>
-                <p class="section-subtitle">我们重视您的每一个建议</p>
-            </div>
-            <div class="support-grid">
-                <div class="support-card">
-                    <div class="support-icon">
-                        <i class="fas fa-bug"></i>
-                    </div>
-                    <h3 class="support-title">问题报告</h3>
-                    <p class="support-description">
-                        遇到问题？请在GitHub Issues中详细描述，我们会及时处理。
-                    </p>
-                    <a href="https://github.com/xf959211192/smart_ble_sensor/issues" 
-                       class="support-link" target="_blank">
-                        报告问题 <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-                <div class="support-card">
-                    <div class="support-icon">
-                        <i class="fas fa-lightbulb"></i>
-                    </div>
-                    <h3 class="support-title">功能建议</h3>
-                    <p class="support-description">
-                        有好的想法？欢迎提交功能建议，让应用变得更好。
-                    </p>
-                    <a href="https://github.com/xf959211192/smart_ble_sensor/issues/new" 
-                       class="support-link" target="_blank">
-                        提交建议 <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-                <div class="support-card">
-                    <div class="support-icon">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <h3 class="support-title">使用文档</h3>
-                    <p class="support-description">
-                        查看详细的使用说明和API文档，快速上手应用。
-                    </p>
-                    <a href="https://github.com/xf959211192/smart_ble_sensor/blob/main/README.md" 
-                       class="support-link" target="_blank">
-                        查看文档 <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">支持与反馈</h2>
+          <p class="section-subtitle">我们重视您的每一个建议</p>
         </div>
+        <div class="support-grid">
+          <div class="support-card">
+            <div class="support-icon">
+              <i class="fas fa-bug"></i>
+            </div>
+            <h3 class="support-title">问题报告</h3>
+            <p class="support-description">
+              遇到问题？请在GitHub Issues中详细描述，我们会及时处理。
+            </p>
+            <a
+              href="https://github.com/xf959211192/smart_ble_sensor/issues"
+              class="support-link"
+              target="_blank"
+            >
+              报告问题 <i class="fas fa-external-link-alt"></i>
+            </a>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">
+              <i class="fas fa-lightbulb"></i>
+            </div>
+            <h3 class="support-title">功能建议</h3>
+            <p class="support-description">
+              有好的想法？欢迎提交功能建议，让应用变得更好。
+            </p>
+            <a
+              href="https://github.com/xf959211192/smart_ble_sensor/issues/new"
+              class="support-link"
+              target="_blank"
+            >
+              提交建议 <i class="fas fa-external-link-alt"></i>
+            </a>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">
+              <i class="fas fa-book"></i>
+            </div>
+            <h3 class="support-title">使用文档</h3>
+            <p class="support-description">
+              查看详细的使用说明和API文档，快速上手应用。
+            </p>
+            <a
+              href="https://github.com/xf959211192/smart_ble_sensor/blob/main/README.md"
+              class="support-link"
+              target="_blank"
+            >
+              查看文档 <i class="fas fa-external-link-alt"></i>
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 页脚 -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-info">
-                    <div class="footer-logo">
-                        <img src="images/app-icon.png" alt="SmartBLESensor" class="footer-logo-img">
-                        <span class="footer-logo-text">SmartBLESensor</span>
-                    </div>
-                    <p class="footer-description">
-                        专业级的蓝牙传感器数据监控解决方案
-                    </p>
-                </div>
-                <div class="footer-links">
-                    <div class="footer-section">
-                        <h4 class="footer-title">产品</h4>
-                        <ul class="footer-list">
-                            <li><a href="#features">功能特性</a></li>
-                            <li><a href="#screenshots">应用截图</a></li>
-                            <li><a href="#download">立即下载</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-section">
-                        <h4 class="footer-title">支持</h4>
-                        <ul class="footer-list">
-                            <li><a href="https://github.com/xf959211192/smart_ble_sensor/issues" target="_blank">问题报告</a></li>
-                            <li><a href="https://github.com/xf959211192/smart_ble_sensor/blob/main/README.md" target="_blank">使用文档</a></li>
-                            <li><a href="#support">联系我们</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-section">
-                        <h4 class="footer-title">开发</h4>
-                        <ul class="footer-list">
-                            <li><a href="https://github.com/xf959211192/smart_ble_sensor" target="_blank">GitHub</a></li>
-                            <li><a href="https://github.com/xf959211192/smart_ble_sensor/releases" target="_blank">版本发布</a></li>
-                            <li><a href="https://github.com/xf959211192/smart_ble_sensor/blob/main/LICENSE" target="_blank">开源许可</a></li>
-                        </ul>
-                    </div>
-                </div>
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-info">
+            <div class="footer-logo">
+              <img
+                src="images/app-icon.png"
+                alt="SmartBLESensor"
+                class="footer-logo-img"
+              />
+              <span class="footer-logo-text">SmartBLESensor</span>
             </div>
-            <div class="footer-bottom">
-                <p class="footer-copyright">
-                    © 2025 SmartBLESensor. 基于 Flutter 构建，采用开源许可证。
-                </p>
-                <div class="footer-social">
-                    <a href="https://github.com/xf959211192/smart_ble_sensor" target="_blank" class="social-link">
-                        <i class="fab fa-github"></i>
-                    </a>
-                </div>
+            <p class="footer-description">专业级的蓝牙传感器数据监控解决方案</p>
+          </div>
+          <div class="footer-links">
+            <div class="footer-section">
+              <h4 class="footer-title">产品</h4>
+              <ul class="footer-list">
+                <li><a href="#features">功能特性</a></li>
+                <li><a href="#screenshots">应用截图</a></li>
+                <li><a href="#download">立即下载</a></li>
+              </ul>
             </div>
+            <div class="footer-section">
+              <h4 class="footer-title">支持</h4>
+              <ul class="footer-list">
+                <li>
+                  <a
+                    href="https://github.com/xf959211192/smart_ble_sensor/issues"
+                    target="_blank"
+                    >问题报告</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/xf959211192/smart_ble_sensor/blob/main/README.md"
+                    target="_blank"
+                    >使用文档</a
+                  >
+                </li>
+                <li><a href="#support">联系我们</a></li>
+              </ul>
+            </div>
+            <div class="footer-section">
+              <h4 class="footer-title">开发</h4>
+              <ul class="footer-list">
+                <li>
+                  <a
+                    href="https://github.com/xf959211192/smart_ble_sensor"
+                    target="_blank"
+                    >GitHub</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/xf959211192/smart_ble_sensor/releases"
+                    target="_blank"
+                    >版本发布</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/xf959211192/smart_ble_sensor/blob/main/LICENSE"
+                    target="_blank"
+                    >开源许可</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
+        <div class="footer-bottom">
+          <p class="footer-copyright">
+            © 2025 SmartBLESensor. 基于 Flutter 构建，采用开源许可证。
+          </p>
+          <div class="footer-social">
+            <a
+              href="https://github.com/xf959211192/smart_ble_sensor"
+              target="_blank"
+              class="social-link"
+            >
+              <i class="fab fa-github"></i>
+            </a>
+          </div>
+        </div>
+      </div>
     </footer>
 
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
