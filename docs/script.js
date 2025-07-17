@@ -107,7 +107,7 @@ if (heroStats) {
 
 // 复制下载链接功能
 function copyDownloadLink() {
-    const downloadUrl = 'https://github.com/xf959211192/smart_ble_sensor/releases/latest';
+    const downloadUrl = 'https://ghfast.top/https://github.com/xf959211192/smart_ble_sensor/releases/download/v1.0.0/SmartBLESensor-v1.0.0-release.apk';
     navigator.clipboard.writeText(downloadUrl).then(() => {
         showNotification('下载链接已复制到剪贴板！');
     }).catch(() => {

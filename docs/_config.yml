@@ -3,8 +3,8 @@
 # 网站基本信息
 title: "SmartBLESensor"
 description: "智能蓝牙传感器监控应用 - 专业级的传感器数据监控解决方案"
-url: "https://xf959211192.github.io"
-baseurl: "/smart_ble_sensor"
+url: "https://ble.xf17.me"
+baseurl: ""
 
 # 作者信息
 author:
