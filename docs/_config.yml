@@ -39,7 +39,7 @@ theme: minima
 # 自定义变量
 app:
   name: "SmartBLESensor"
-  version: "v1.0.0"
+  version: "v1.3.0"
   package: "com.xf17.smartblesensor"
   size: "25.47 MB"
   min_android: "5.0"

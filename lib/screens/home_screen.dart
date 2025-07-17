@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../providers/providers.dart';
 import '../models/models.dart';
 import '../services/uuid_config_service.dart';
+import '../services/csv_export_service.dart';
 import 'device_scan_screen.dart';
 
 /// 主屏幕
@@ -1421,6 +1423,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   final List<SensorRecord> _records = [];
   bool _isRecording = false;
   Timer? _recordingTimer;
+  final CsvExportService _csvExportService = CsvExportService();
 
   @override
   void initState() {
@@ -1783,17 +1786,171 @@ class _RecordsTabState extends State<_RecordsTab> {
       return;
     }
 
-    try {
-      // 生成CSV内容
-      final csvContent = _generateCSVContent();
+    // 显示导出选项对话框
+    _showExportOptionsDialog();
+  }
 
-      // 显示CSV内容对话框（简化版本，不需要文件系统权限）
-      _showCSVDialog(csvContent);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.red),
+  /// 显示导出选项对话框
+  void _showExportOptionsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('导出数据'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('共有 ${_records.length} 条记录'),
+            const SizedBox(height: 16),
+            const Text('请选择导出方式:'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _exportToFile();
+            },
+            child: const Text('保存到文件'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showCSVPreview();
+            },
+            child: const Text('预览/复制'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 导出到文件
+  void _exportToFile() async {
+    try {
+      // 显示加载指示器
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('正在导出...'),
+            ],
+          ),
+        ),
       );
+
+      // 导出文件
+      final filePath = await _csvExportService.exportSensorRecords(_records);
+      final fileSize = await _csvExportService.getFileSize(filePath);
+      final formattedSize = _csvExportService.formatFileSize(fileSize);
+
+      // 关闭加载指示器
+      if (mounted) Navigator.pop(context);
+
+      // 显示成功对话框
+      if (mounted) _showExportSuccessDialog(filePath, formattedSize);
+    } catch (e) {
+      // 关闭加载指示器
+      if (mounted) Navigator.pop(context);
+
+      // 显示错误信息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
+  }
+
+  /// 显示导出成功对话框
+  void _showExportSuccessDialog(String filePath, String fileSize) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 8),
+            Text('导出成功'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('文件已保存到:'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: SelectableText(
+                filePath,
+                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('文件大小: $fileSize'),
+            Text('记录数量: ${_records.length} 条'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示CSV预览
+  void _showCSVPreview() {
+    final csvContent = _generateCSVContent();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('CSV数据预览'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              csvContent,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: csvContent));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('CSV数据已复制到剪贴板'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('复制'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 生成CSV内容
@@ -1813,51 +1970,6 @@ class _RecordsTabState extends State<_RecordsTab> {
     }
 
     return buffer.toString();
-  }
-
-  /// 显示CSV内容对话框
-  void _showCSVDialog(String csvContent) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('CSV数据'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              csvContent,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-          TextButton(
-            onPressed: () {
-              // 复制到剪贴板
-              _copyToClipboard(csvContent);
-              Navigator.pop(context);
-            },
-            child: const Text('复制'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 复制到剪贴板
-  void _copyToClipboard(String text) {
-    // 这里可以使用 Clipboard.setData，但需要导入 flutter/services
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('CSV数据已显示，可手动复制'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 }
 

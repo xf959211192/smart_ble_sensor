@@ -18,10 +18,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -31,7 +29,10 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+.packages
 /build/
+build/
+flutter_*.png
 
 # Symbolication related
 app.*.symbols
@@ -39,88 +40,45 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android related
 /android/app/debug
 /android/app/profile
 /android/app/release
-# Flutter generated files
-.dart_tool/
-.packages
-.pub-cache/
-build/
-flutter_*.png
+android/.gradle/
+android/.idea/
+android/local.properties
+android/*.iml
 
-# VS Code related
-.vscode/
-
-# iOS / Android build folders
+# iOS related
 ios/Flutter/Flutter.podspec
 ios/Pods/
 ios/.symlinks/
 ios/Flutter/ephemeral/
+ios/Podfile.lock
+
+# macOS related
 macos/Flutter/ephemeral/
-android/.gradle/
-android/.idea/
-android/local.properties
+macos/Pods/
+macos/Podfile.lock
 
-# Misc
-*.lock
+# Windows related
+windows/flutter/ephemeral/
 
+# Linux related
+linux/flutter/ephemeral/
 
-# Flutter generated files
-.dart_tool/
-.packages
-.pub-cache/
-build/
-flutter_*.png
+# Web related
+web/*.js.map
 
-# VS Code related
-.vscode/
-
-# iOS / Android build folders
-ios/Flutter/Flutter.podspec
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/ephemeral/
-macos/Flutter/ephemeral/
-android/.gradle/
-android/.idea/
-android/local.properties
-
-# Misc
-*.lock
-# Flutter generated files
-.dart_tool/
-.packages
-.pub-cache/
-build/
-flutter_*.png
-
-# VS Code related
-.vscode/
-
-# iOS / Android build folders
-ios/Flutter/Flutter.podspec
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/ephemeral/
-macos/Flutter/ephemeral/
-android/.gradle/
-android/.idea/
-android/local.properties
-
-# Misc
-*.lock
-# 忽略 Flutter 编译中间文件
-.dart_tool/
-.packages
-.pub/
-build/
-.idea/
-.vscode/
-*.iml
-
-# 系统缓存文件
+# System files
 .DS_Store
 Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.lock
+
+# APK files (uncomment if you don't want to commit APK files)
+# *.apk
 
