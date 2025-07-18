@@ -19,22 +19,6 @@ void main() {
     });
 
     test('should prepare CSV data correctly', () {
-      final records = [
-        SensorRecord(
-          timestamp: DateTime(2024, 1, 15, 14, 30, 1),
-          value: 25.67,
-        ),
-        SensorRecord(
-          timestamp: DateTime(2024, 1, 15, 14, 30, 2),
-          value: 25.71,
-        ),
-        SensorRecord(
-          timestamp: DateTime(2024, 1, 15, 14, 30, 3),
-          value: 25.69,
-        ),
-      ];
-
-      // 使用反射或者创建一个测试方法来验证CSV数据准备
       // 这里我们主要测试服务是否能正确实例化
       expect(csvExportService, isNotNull);
     });

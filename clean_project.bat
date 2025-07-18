@@ -65,6 +65,12 @@ if exist "web\*.js.map" (
     echo ✅ 删除 Web source map 文件
 )
 
+REM 删除开发工具配置文件
+if exist "devtools_options.yaml" (
+    del "devtools_options.yaml"
+    echo ✅ 删除 devtools_options.yaml
+)
+
 echo.
 echo 📊 显示清理后的项目大小...
 for /f "tokens=3" %%a in ('dir /s /-c ^| find "个文件"') do set size=%%a
