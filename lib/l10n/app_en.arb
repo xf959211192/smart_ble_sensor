@@ -13,6 +13,8 @@
   "deviceDisconnectButton": "Disconnect",
   "deviceConnectButton": "Connect Device",
   "deviceInfoTitle": "Device Info",
+  "deviceInfoNameLabel": "Device name:",
+  "deviceInfoMacLabel": "MAC address:",
   "deviceInfoRssiLabel": "Signal strength:",
   "@languageMenuTitle": {
     "description": "Language switch menu title"
@@ -21,7 +23,7 @@
   "@languageChinese": {
     "description": "Menu item: Simplified Chinese"
   },
-  "languageChinese": "简体中文",
+  "languageChinese": "\u7b80\u4f53\u4e2d\u6587",
   "@languageEnglish": {
     "description": "Menu item: English"
   },
@@ -56,7 +58,7 @@
   "uuidConfigCharacteristicRequired": "Enter the characteristic UUID",
   "uuidConfigCharacteristicInvalid": "Enter a valid characteristic UUID",
   "uuidConfigUnitLabel": "Unit",
-  "uuidConfigUnitHint": "e.g. ℃, %RH, ppm",
+  "uuidConfigUnitHint": "e.g. \u2103, %RH, ppm",
   "uuidConfigDescriptionLabel": "Notes",
   "uuidConfigDescriptionHint": "Optional, describe how this characteristic is used",
   "monitoringConfigNotProvided": "Preset does not include a valid characteristic UUID",
@@ -87,7 +89,7 @@
   "monitoringEmptyCurrentMessage": "No characteristics selected",
   "monitoringChartTitle": "Live Trends",
   "monitoringChartEmptyMessage": "No history available yet",
-  "monitoringTooltip": "{name}\nValue: {value}\nTime: {time}",
+  "monitoringTooltip": "{name}\\nValue: {value}\\nTime: {time}",
   "monitoringServiceLabel": "Service: {uuid}",
   "monitoringUnitLabel": "Unit: {unit}",
   "monitoringCharacteristicLabel": "Characteristic: {uuid}",

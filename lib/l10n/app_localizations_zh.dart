@@ -48,6 +48,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceInfoTitle => '设备信息';
 
   @override
+  String get deviceInfoNameLabel => '设备名称:';
+
+  @override
+  String get deviceInfoMacLabel => 'MAC 地址:';
+
+  @override
   String get deviceInfoRssiLabel => '信号强度:';
 
   @override

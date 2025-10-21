@@ -176,6 +176,18 @@ abstract class AppLocalizations {
   /// **'设备信息'**
   String get deviceInfoTitle;
 
+  /// 设备信息卡片名称标签
+  ///
+  /// In zh, this message translates to:
+  /// **'设备名称:'**
+  String get deviceInfoNameLabel;
+
+  /// 设备信息卡片 MAC 地址标签
+  ///
+  /// In zh, this message translates to:
+  /// **'MAC 地址:'**
+  String get deviceInfoMacLabel;
+
   /// 设备信息卡片中 RSSI 标签
   ///
   /// In zh, this message translates to:

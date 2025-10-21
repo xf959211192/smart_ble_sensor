@@ -49,6 +49,14 @@
     "description": "设备信息卡片标题"
   },
   "deviceInfoTitle": "设备信息",
+  "@deviceInfoNameLabel": {
+    "description": "设备信息卡片名称标签"
+  },
+  "deviceInfoNameLabel": "设备名称:",
+  "@deviceInfoMacLabel": {
+    "description": "设备信息卡片 MAC 地址标签"
+  },
+  "deviceInfoMacLabel": "MAC 地址:",
   "@deviceInfoRssiLabel": {
     "description": "设备信息卡片中 RSSI 标签"
   },

@@ -48,6 +48,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceInfoTitle => 'Device Info';
 
   @override
+  String get deviceInfoNameLabel => 'Device name:';
+
+  @override
+  String get deviceInfoMacLabel => 'MAC address:';
+
+  @override
   String get deviceInfoRssiLabel => 'Signal strength:';
 
   @override
@@ -257,7 +263,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String monitoringTooltip(String name, String value, String time) {
-    return '$name\nValue: $value\nTime: $time';
+    return '$name\\nValue: $value\\nTime: $time';
   }
 
   @override

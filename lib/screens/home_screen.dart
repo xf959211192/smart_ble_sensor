@@ -210,7 +210,13 @@ class _DeviceManagementTab extends StatelessWidget {
     return Consumer<BluetoothProvider>(
       builder: (context, bluetoothProvider, child) {
         final isConnected = bluetoothProvider.state.isConnected;
-        final connectedDevice = bluetoothProvider.state.connectedDevice;
+        final DeviceInfo? connectedDevice =
+            bluetoothProvider.state.connectedDevice;
+        final String deviceName =
+            (connectedDevice != null && connectedDevice.name.trim().isNotEmpty)
+            ? connectedDevice.name.trim()
+            : context.l10n.deviceUnknownName;
+        final String macAddress = connectedDevice?.address ?? '--';
 
         return Container(
           width: double.infinity,
@@ -239,6 +245,16 @@ class _DeviceManagementTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              _buildInfoRow(
+                context.l10n.deviceInfoNameLabel,
+                isConnected ? deviceName : context.l10n.deviceNonePlaceholder,
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                context.l10n.deviceInfoMacLabel,
+                isConnected ? macAddress : '--',
+              ),
+              const SizedBox(height: 12),
               _buildInfoRow(
                 context.l10n.deviceInfoRssiLabel,
                 isConnected ? '${connectedDevice?.rssi ?? '--'} dBm' : '-- dBm',
@@ -1347,22 +1363,6 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          l10n.monitoringServiceLabel(config.serviceUuid),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        Text(
-                          l10n.monitoringCharacteristicLabel(
-                            config.characteristicUuid,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
                         if (unitText.isNotEmpty)
                           Text(
                             l10n.monitoringUnitLabel(unitText),
