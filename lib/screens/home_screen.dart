@@ -1,13 +1,14 @@
-import 'dart:async';
+﻿import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../l10n/l10n.dart';
 import '../providers/providers.dart';
 import '../models/models.dart';
-import '../services/uuid_config_service.dart';
-import '../services/csv_export_service.dart';
+import '../services/services.dart';
 import 'device_scan_screen.dart';
 
 /// 主屏幕
@@ -29,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
@@ -41,10 +43,19 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.bluetooth), label: '设备'),
-          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: '监控'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: '记录'),
+        items: [
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.bluetooth),
+            label: l10n.homeTabDevice,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.analytics),
+            label: l10n.homeTabMonitoring,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.history),
+            label: l10n.homeTabRecords,
+          ),
         ],
       ),
     );
@@ -59,13 +70,31 @@ class _DeviceManagementTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('设备管理'),
+        title: Text(context.l10n.deviceManagementTitle),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          Consumer<LocaleProvider>(
+            builder: (context, localeProvider, _) {
+              return PopupMenuButton<Locale>(
+                icon: const Icon(Icons.language),
+                tooltip: context.l10n.languageMenuTitle,
+                onSelected: localeProvider.switchLocale,
+                itemBuilder: (context) => [
+                  PopupMenuItem<Locale>(
+                    value: const Locale('zh'),
+                    child: Text(context.l10n.languageChinese),
+                  ),
+                  PopupMenuItem<Locale>(
+                    value: const Locale('en'),
+                    child: Text(context.l10n.languageEnglish),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
       backgroundColor: const Color(0xFFF5F5F5),
@@ -110,8 +139,8 @@ class _DeviceManagementTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '已连接设备',
+                  Text(
+                    context.l10n.deviceManagementCardTitle,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -128,7 +157,9 @@ class _DeviceManagementTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      isConnected ? '已连接' : '未连接',
+                      isConnected
+                          ? context.l10n.deviceStatusConnected
+                          : context.l10n.deviceStatusDisconnected,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -140,7 +171,9 @@ class _DeviceManagementTab extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                isConnected ? (connectedDevice?.name ?? '未知设备') : '无连接设备',
+                isConnected
+                    ? (connectedDevice?.name ?? context.l10n.deviceUnknownName)
+                    : context.l10n.deviceNonePlaceholder,
                 style: const TextStyle(fontSize: 14, color: Colors.black54),
               ),
               const SizedBox(height: 16),
@@ -158,7 +191,11 @@ class _DeviceManagementTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(isConnected ? '断开连接' : '连接设备'),
+                  child: Text(
+                    isConnected
+                        ? context.l10n.deviceDisconnectButton
+                        : context.l10n.deviceConnectButton,
+                  ),
                 ),
               ),
             ],
@@ -193,8 +230,8 @@ class _DeviceManagementTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '设备信息',
+              Text(
+                context.l10n.deviceInfoTitle,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -203,7 +240,7 @@ class _DeviceManagementTab extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildInfoRow(
-                '信号强度:',
+                context.l10n.deviceInfoRssiLabel,
                 isConnected ? '${connectedDevice?.rssi ?? '--'} dBm' : '-- dBm',
               ),
             ],
@@ -261,72 +298,73 @@ class _DataMonitoringTab extends StatefulWidget {
 }
 
 class _DataMonitoringTabState extends State<_DataMonitoringTab> {
-  UuidConfig? _selectedConfig;
-  bool _isDataNotificationActive = false; // 数据通知是否已激活
+  final List<UuidConfig> _selectedConfigs = [];
+  bool _isDataNotificationActive = false;
 
-  // 实时数据存储
-  final List<FlSpot> _sensorData = [];
-  final int _maxDataPoints = 50; // 最多显示50个数据点
-  double _timeIndex = 0;
-
-  // UUID配置服务
   final UuidConfigService _uuidConfigService = UuidConfigService();
+  final Map<String, Color> _colorByUuid = {};
+
+  static const List<Color> _chartColors = [
+    Color(0xFF42A5F5),
+    Color(0xFFFFA726),
+    Color(0xFF66BB6A),
+    Color(0xFF26C6DA),
+    Color(0xFFAB47BC),
+    Color(0xFFFF7043),
+    Color(0xFF7E57C2),
+    Color(0xFF26A69A),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _startListeningToSensorData();
-    _loadSelectedConfig();
+    _loadSelectedConfigs();
   }
 
-  /// 加载选中的UUID配置
-  Future<void> _loadSelectedConfig() async {
-    final config = await _uuidConfigService.getSelectedConfig();
-    if (mounted) {
-      setState(() {
-        _selectedConfig = config;
-      });
+  Future<void> _loadSelectedConfigs() async {
+    final configs = await _uuidConfigService.getSelectedConfigs();
+    if (!mounted) return;
+    setState(() {
+      _selectedConfigs
+        ..clear()
+        ..addAll(configs);
+    });
+    _syncColorsWithSelection();
+  }
+
+  void _syncColorsWithSelection() {
+    final Set<String> activeUuids = _selectedConfigs
+        .map((config) => _normalizeUuid(config.characteristicUuid))
+        .toSet();
+
+    _colorByUuid.removeWhere((uuid, _) => !activeUuids.contains(uuid));
+
+    for (final String uuid in activeUuids) {
+      _colorByUuid.putIfAbsent(
+        uuid,
+        () => _chartColors[_colorByUuid.length % _chartColors.length],
+      );
     }
   }
 
-  @override
-  void dispose() {
-    final sensorDataProvider = context.read<SensorDataProvider>();
-    sensorDataProvider.removeListener(_onSensorDataChanged);
-    super.dispose();
+  Color _colorForUuid(String uuid) {
+    final String normalized = _normalizeUuid(uuid);
+    return _colorByUuid.putIfAbsent(
+      normalized,
+      () => _chartColors[_colorByUuid.length % _chartColors.length],
+    );
   }
 
-  /// 开始监听传感器数据
-  void _startListeningToSensorData() {
-    final sensorDataProvider = context.read<SensorDataProvider>();
-    sensorDataProvider.addListener(_onSensorDataChanged);
-  }
-
-  /// 传感器数据变化回调
-  void _onSensorDataChanged() {
-    final sensorDataProvider = context.read<SensorDataProvider>();
-    final latestData = sensorDataProvider.latestData;
-
-    if (latestData != null && mounted) {
-      setState(() {
-        // 添加新的传感器数据点
-        _sensorData.add(FlSpot(_timeIndex, latestData.value));
-        _timeIndex++;
-
-        // 保持最大数据点数量
-        if (_sensorData.length > _maxDataPoints) {
-          _sensorData.removeAt(0);
-          // 不需要调整_timeIndex，让它继续递增以保持时间连续性
-        }
-      });
-    }
-  }
+  Set<String> _selectedUuidSet() => _selectedConfigs
+      .map((config) => _normalizeUuid(config.characteristicUuid))
+      .toSet();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('实时监控'),
+        title: Text(l10n.monitoringTitle),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -342,15 +380,15 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
       body: Consumer<BluetoothProvider>(
         builder: (context, bluetoothProvider, child) {
           if (!bluetoothProvider.isConnected) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
                   Text(
-                    '请先连接蓝牙设备',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    l10n.monitoringConnectRequired,
+                    style: const TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 ],
               ),
@@ -359,14 +397,17 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
 
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildConnectionStatus(bluetoothProvider),
-                const SizedBox(height: 16),
-                _buildCurrentDataCard(),
-                const SizedBox(height: 16),
-                Expanded(child: _buildSensorChart()),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildConnectionStatus(bluetoothProvider),
+                  const SizedBox(height: 16),
+                  _buildCurrentDataCard(bluetoothProvider),
+                  const SizedBox(height: 16),
+                  _buildSensorChart(bluetoothProvider),
+                ],
+              ),
             ),
           );
         },
@@ -374,11 +415,635 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
     );
   }
 
-  /// 构建连接状态卡片
+  void _showSnackBar(String message, {Color? color}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
+  String _normalizeUuid(String uuid) => uuid.trim().toLowerCase();
+
+  Future<void> _startListening(BluetoothProvider bluetoothProvider) async {
+    final l10n = context.l10n;
+    if (_selectedConfigs.isEmpty) {
+      _showSnackBar(l10n.monitoringSnackSelectConfig);
+      return;
+    }
+
+    final Map<String, Map<String, String>> groupedByService = {};
+    final Map<String, String> serviceOriginalByKey = {};
+    final Map<String, String> withoutService = {};
+
+    for (final UuidConfig config in _selectedConfigs) {
+      final String trimmedCharacteristic = config.characteristicUuid.trim();
+      if (trimmedCharacteristic.isEmpty) {
+        continue;
+      }
+
+      final String normalizedCharacteristic = _normalizeUuid(
+        trimmedCharacteristic,
+      );
+
+      final String serviceUuid = config.serviceUuid.trim();
+      if (serviceUuid.isEmpty) {
+        withoutService.putIfAbsent(
+          normalizedCharacteristic,
+          () => trimmedCharacteristic,
+        );
+      } else {
+        final String normalizedService = _normalizeUuid(serviceUuid);
+        serviceOriginalByKey.putIfAbsent(normalizedService, () => serviceUuid);
+        final Map<String, String> characteristicMap = groupedByService
+            .putIfAbsent(normalizedService, () => <String, String>{});
+        characteristicMap.putIfAbsent(
+          normalizedCharacteristic,
+          () => trimmedCharacteristic,
+        );
+      }
+    }
+
+    if (groupedByService.isEmpty && withoutService.isEmpty) {
+      _showSnackBar(l10n.monitoringConfigNotProvided);
+      return;
+    }
+
+    bool anySuccess = false;
+
+    for (final MapEntry<String, Map<String, String>> entry
+        in groupedByService.entries) {
+      final String? originalServiceUuid = serviceOriginalByKey[entry.key];
+      if (originalServiceUuid == null) continue;
+
+      final bool success = await bluetoothProvider.setupDataNotification(
+        serviceUuid: originalServiceUuid,
+        characteristicUuids: entry.value.values.toList(),
+      );
+      anySuccess = anySuccess || success;
+    }
+
+    if (withoutService.isNotEmpty) {
+      final bool success = await bluetoothProvider.setupDataNotification(
+        characteristicUuids: withoutService.values.toList(),
+      );
+      anySuccess = anySuccess || success;
+    }
+
+    if (!mounted) return;
+
+    if (anySuccess) {
+      setState(() {
+        _isDataNotificationActive = true;
+      });
+      _showSnackBar(l10n.monitoringSnackStartSuccess, color: Colors.green);
+    } else {
+      _showSnackBar(l10n.monitoringSnackStartFailure, color: Colors.redAccent);
+    }
+  }
+
+  Future<bool> _stopListening(
+    BluetoothProvider bluetoothProvider, {
+    bool showFeedback = true,
+  }) async {
+    final l10n = context.l10n;
+    if (_selectedConfigs.isEmpty) {
+      if (showFeedback) _showSnackBar(l10n.monitoringSnackNoActive);
+      return false;
+    }
+
+    final List<String> targets = _selectedConfigs
+        .map((config) => config.characteristicUuid.trim())
+        .where((uuid) => uuid.isNotEmpty)
+        .toList();
+
+    if (targets.isEmpty) {
+      if (showFeedback) _showSnackBar(l10n.monitoringSnackNoActive);
+      return false;
+    }
+
+    final bool stopped = await bluetoothProvider.stopDataNotification(
+      characteristicUuids: targets,
+    );
+
+    if (!mounted) return stopped;
+
+    if (stopped) {
+      setState(() {
+        _isDataNotificationActive = false;
+      });
+      if (showFeedback) {
+        _showSnackBar(l10n.monitoringSnackStopSuccess);
+      }
+    } else if (showFeedback) {
+      _showSnackBar(l10n.monitoringSnackStopFailure);
+    }
+
+    return stopped;
+  }
+
+  void _clearSelectedData(BluetoothProvider bluetoothProvider) {
+    final l10n = context.l10n;
+    if (_selectedConfigs.isEmpty) {
+      _showSnackBar(l10n.monitoringSnackSelectConfig);
+      return;
+    }
+
+    final List<String> targets = _selectedConfigs
+        .map((config) => config.characteristicUuid.trim())
+        .where((uuid) => uuid.isNotEmpty)
+        .toList();
+
+    if (targets.isEmpty) {
+      _showSnackBar(l10n.monitoringSnackSelectConfig);
+      return;
+    }
+
+    bluetoothProvider.clearSensorHistory(characteristicUuids: targets);
+    _showSnackBar(l10n.monitoringSnackClearSuccess, color: Colors.orange);
+  }
+
+  Future<void> _showCharacteristicSelector() async {
+    final l10n = context.l10n;
+    final BluetoothProvider bluetoothProvider = context
+        .read<BluetoothProvider>();
+
+    List<UuidConfig> allConfigs = await _uuidConfigService
+        .getAllConfigs();
+    if (!mounted) return;
+
+    if (allConfigs.isEmpty) {
+      final UuidConfig? created =
+          await _showUuidConfigForm(initialConfig: null);
+      if (created == null) {
+        _showSnackBar(l10n.monitoringNoSavedConfigs);
+        return;
+      }
+
+      final bool saved = await _uuidConfigService.saveConfig(created);
+      if (!saved) {
+        _showSnackBar(l10n.monitoringConfigSaveFailed, color: Colors.red);
+        return;
+      }
+
+      _showSnackBar(l10n.monitoringConfigCreateSuccess, color: Colors.green);
+      allConfigs = await _uuidConfigService.getAllConfigs();
+      if (!mounted) return;
+      if (allConfigs.isEmpty) {
+        _showSnackBar(l10n.monitoringNoSavedConfigs);
+        return;
+      }
+    }
+
+    final Set<String> initialSelection = _selectedConfigs
+        .map((config) => config.id)
+        .toSet();
+
+    bool configsModified = false;
+    final List<String>? result = await showDialog<List<String>>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final Set<String> tempSelection = Set<String>.from(initialSelection);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> refreshConfigs() async {
+              final List<UuidConfig> refreshed =
+                  await _uuidConfigService.getAllConfigs();
+              setState(() {
+                allConfigs
+                  ..clear()
+                  ..addAll(refreshed);
+                final Set<String> existingIds =
+                    allConfigs.map((config) => config.id).toSet();
+                tempSelection.removeWhere(
+                  (id) => !existingIds.contains(id),
+                );
+              });
+            }
+
+            Future<void> handleEdit(UuidConfig config) async {
+              final UuidConfig? updated =
+                  await _showUuidConfigForm(initialConfig: config);
+              if (updated == null) return;
+
+              final bool success = await _uuidConfigService.saveConfig(updated);
+              if (!success) {
+                if (!mounted) return;
+                _showSnackBar(l10n.monitoringConfigSaveFailed, color: Colors.red);
+                return;
+              }
+              configsModified = true;
+              await refreshConfigs();
+              if (!mounted) return;
+              _showSnackBar(l10n.monitoringConfigUpdateSuccess, color: Colors.green);
+            }
+
+            Future<void> handleDelete(UuidConfig config) async {
+              final bool? confirmed = await showDialog<bool>(
+                context: dialogContext,
+                builder: (context) => AlertDialog(
+                  title: Text(l10n.dialogConfirmDeleteTitle),
+                  content: Text(
+                    l10n.monitoringConfirmDeleteConfig(config.name),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(l10n.commonCancel),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text(l10n.commonDelete),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
+
+              final bool success =
+                  await _uuidConfigService.deleteConfig(config.id);
+              if (!success) {
+                if (!mounted) return;
+                _showSnackBar(l10n.monitoringConfigDeleteFailed, color: Colors.red);
+                return;
+              }
+              configsModified = true;
+              await refreshConfigs();
+              setState(() {
+                tempSelection.remove(config.id);
+              });
+              if (!mounted) return;
+              _showSnackBar(l10n.monitoringConfigDeleteSuccess, color: Colors.green);
+            }
+
+            Future<void> handleCreate() async {
+              final UuidConfig? created =
+                  await _showUuidConfigForm(initialConfig: null);
+              if (created == null) return;
+
+              final bool success = await _uuidConfigService.saveConfig(created);
+              if (!success) {
+                if (!mounted) return;
+                _showSnackBar(l10n.monitoringConfigSaveFailed, color: Colors.red);
+                return;
+              }
+              configsModified = true;
+              await refreshConfigs();
+              setState(() {
+                tempSelection.add(created.id);
+              });
+              if (!mounted) return;
+              _showSnackBar(l10n.monitoringConfigCreateSuccess, color: Colors.green);
+            }
+
+            return AlertDialog(
+              title: Text(l10n.monitoringSelectConfigDialogTitle),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 360,
+                child: allConfigs.isEmpty
+                    ? Center(
+                        child: Text(
+                          l10n.monitoringNoSavedConfigs,
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: allConfigs.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1, thickness: 0.5),
+                        itemBuilder: (context, index) {
+                          final UuidConfig config = allConfigs[index];
+                          final bool isChecked =
+                              tempSelection.contains(config.id);
+
+                          void toggleSelection([bool? nextValue]) {
+                            final bool shouldSelect = nextValue ?? !isChecked;
+                            setState(() {
+                              if (shouldSelect) {
+                                tempSelection.add(config.id);
+                              } else {
+                                tempSelection.remove(config.id);
+                              }
+                            });
+                          }
+
+                          return ListTile(
+                            onTap: toggleSelection,
+                            leading: Checkbox(
+                              value: isChecked,
+                              onChanged: (_) => toggleSelection(),
+                            ),
+                            title: Text(config.name),
+                            subtitle: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Service: ${config.serviceUuid}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                Text(
+                                  'Characteristic: ${config.characteristicUuid}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                if (config.description != null &&
+                                    config.description!.isNotEmpty)
+                                  Text(
+                                    config.description!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: l10n.commonEdit,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => handleEdit(config),
+                                ),
+                                IconButton(
+                                  tooltip: l10n.commonDelete,
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => handleDelete(config),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => handleCreate(),
+                  child: Text(l10n.monitoringDialogCreateButton),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.commonCancel),
+                ),
+                ElevatedButton(
+                  onPressed: () =>
+                      Navigator.of(dialogContext).pop(tempSelection.toList()),
+                  child: Text(l10n.commonApply),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null) {
+      if (configsModified) {
+        await _loadSelectedConfigs();
+      }
+      return;
+    }
+
+    final List<String> orderedSelection = <String>[];
+    for (final String id in result) {
+      if (!orderedSelection.contains(id)) {
+        orderedSelection.add(id);
+      }
+    }
+
+    final Set<String> newSelection = orderedSelection.toSet();
+    if (newSelection.length == initialSelection.length &&
+        initialSelection.containsAll(newSelection)) {
+      return;
+    }
+
+    final bool wasListening = _selectedUuidSet().any(
+      (uuid) => bluetoothProvider.notificationStatus[uuid] ?? false,
+    );
+
+    if (wasListening) {
+      await _stopListening(bluetoothProvider, showFeedback: false);
+      if (!mounted) return;
+      _showSnackBar(l10n.monitoringSnackStoppedForUpdate, color: Colors.orange);
+    }
+
+    await _uuidConfigService.setSelectedConfigs(orderedSelection);
+
+    final List<UuidConfig> updatedSelection = <UuidConfig>[];
+    for (final String id in orderedSelection) {
+      for (final UuidConfig config in allConfigs) {
+        if (config.id == id) {
+          updatedSelection.add(config);
+          break;
+        }
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _selectedConfigs
+        ..clear()
+        ..addAll(updatedSelection);
+      _syncColorsWithSelection();
+    });
+
+    if (configsModified) {
+      await _loadSelectedConfigs();
+    }
+  }
+
+  Future<UuidConfig?> _showUuidConfigForm({UuidConfig? initialConfig}) async {
+    final l10n = context.l10n;
+    final bool isEditing = initialConfig != null;
+    final TextEditingController nameController = TextEditingController(
+      text: initialConfig?.name ?? '',
+    );
+    final TextEditingController serviceController = TextEditingController(
+      text: initialConfig?.serviceUuid ?? '',
+    );
+    final TextEditingController characteristicController =
+        TextEditingController(
+      text: initialConfig?.characteristicUuid ?? '',
+    );
+    final TextEditingController descriptionController = TextEditingController(
+      text: initialConfig?.description ?? '',
+    );
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    return showDialog<UuidConfig>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            isEditing
+                ? l10n.monitoringEditConfigTitle
+                : l10n.monitoringCreateConfigTitle,
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: l10n.uuidConfigNameLabel,
+                      hintText: l10n.uuidConfigNameHint,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.uuidConfigNameRequired;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: serviceController,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Service UUID',
+                      hintText: l10n.uuidConfigServiceHint,
+                    ),
+                    validator: (value) {
+                      final String text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return null;
+                      }
+                      if (!UuidConfigService.isValidUuid(text)) {
+                        return l10n.uuidConfigServiceInvalid;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: characteristicController,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: l10n.uuidConfigCharacteristicLabel,
+                      hintText: l10n.uuidConfigCharacteristicHint,
+                    ),
+                    validator: (value) {
+                      final String text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return l10n.uuidConfigCharacteristicRequired;
+                      }
+                      if (!UuidConfigService.isValidUuid(text)) {
+                        return l10n.uuidConfigCharacteristicInvalid;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: descriptionController,
+                    textInputAction: TextInputAction.done,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: l10n.uuidConfigDescriptionLabel,
+                      hintText: l10n.uuidConfigDescriptionHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonCancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (!formKey.currentState!.validate()) {
+                  return;
+                }
+                final DateTime now = DateTime.now();
+                final String descriptionText =
+                    descriptionController.text.trim();
+                final UuidConfig? baseConfig = initialConfig;
+                final UuidConfig result;
+                if (isEditing && baseConfig != null) {
+                  result = baseConfig.copyWith(
+                    name: nameController.text.trim(),
+                    serviceUuid: serviceController.text.trim(),
+                    characteristicUuid: characteristicController.text.trim(),
+                    description:
+                        descriptionText.isEmpty ? null : descriptionText,
+                  );
+                } else {
+                  result = UuidConfig(
+                    id: now.microsecondsSinceEpoch.toString(),
+                    name: nameController.text.trim(),
+                    serviceUuid: serviceController.text.trim(),
+                    characteristicUuid: characteristicController.text.trim(),
+                    description:
+                        descriptionText.isEmpty ? null : descriptionText,
+                    createdAt: now,
+                  );
+                }
+                Navigator.of(context).pop(result);
+              },
+              child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildConnectionStatus(BluetoothProvider bluetoothProvider) {
+    final l10n = context.l10n;
+    final DeviceInfo? device = bluetoothProvider.connectedDevice;
+    final Map<String, bool> statusMap = bluetoothProvider.notificationStatus;
+    final Set<String> selectedUuids = _selectedUuidSet();
+    final int activeCount = selectedUuids
+        .where((uuid) => statusMap[uuid] ?? false)
+        .length;
+
+    final bool hasSelection = selectedUuids.isNotEmpty;
+    final bool isActive = hasSelection && activeCount > 0;
+
+    if (_isDataNotificationActive != isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _isDataNotificationActive = isActive;
+        });
+      });
+    }
+
+    final String deviceName = (device != null && device.name.isNotEmpty)
+        ? device.name
+        : l10n.deviceUnknownName;
+    final int selectedCount = selectedUuids.length;
+    final String selectionLabel = hasSelection
+        ? l10n.monitoringStatusSelectionCount(selectedCount)
+        : l10n.monitoringStatusNoSelection;
+
+    final String statusLabel;
+    final Color statusColor;
+
+    if (!hasSelection) {
+      statusLabel = l10n.monitoringStatusNoSelection;
+      statusColor = Colors.grey;
+    } else if (isActive) {
+      statusLabel = l10n.monitoringStatusActive(activeCount, selectedCount);
+      statusColor = Colors.green;
+    } else {
+      statusLabel = l10n.monitoringStatusIdle;
+      statusColor = Colors.orange;
+    }
+
+    final bool canStart = hasSelection && !isActive;
+    final bool canStop = hasSelection && isActive;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -392,392 +1057,410 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 设备连接信息
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.bluetooth_connected, color: Colors.green, size: 24),
-              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.bluetooth_connected,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '已连接: ${bluetoothProvider.connectedDevice?.name ?? '未知设备'}',
+                      l10n.monitoringStatusTitle,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      bluetoothProvider.connectedDevice?.address ?? '',
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      deviceName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      selectionLabel,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: _isDataNotificationActive
-                      ? Colors.green
-                      : Colors.orange,
-                  borderRadius: BorderRadius.circular(12),
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  _isDataNotificationActive ? '监听中' : '未监听',
+                  statusLabel,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // UUID配置和控制按钮
-          Column(
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              // 第一行：UUID配置信息
-              Row(
+              ElevatedButton.icon(
+                onPressed: canStart
+                    ? () => _startListening(bluetoothProvider)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow),
+                label: Text(l10n.monitoringButtonStart),
+              ),
+              OutlinedButton.icon(
+                onPressed: canStop
+                    ? () => _stopListening(bluetoothProvider)
+                    : null,
+                icon: const Icon(Icons.stop),
+                label: Text(l10n.monitoringButtonStop),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: hasSelection
+                    ? () => _clearSelectedData(bluetoothProvider)
+                    : null,
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: Text(l10n.monitoringButtonClear),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentDataCard(BluetoothProvider bluetoothProvider) {
+    final l10n = context.l10n;
+    if (_selectedConfigs.isEmpty) {
+      return _buildEmptyDataCard(
+        title: l10n.monitoringEmptyCurrentTitle,
+        message: l10n.monitoringEmptyCurrentMessage,
+      );
+    }
+
+    final Map<String, SensorData> latestData =
+        bluetoothProvider.latestSensorDataByUuid;
+    final Map<String, bool> statusMap = bluetoothProvider.notificationStatus;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.sensors, color: Colors.green),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                l10n.monitoringCurrentDataTitle,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._selectedConfigs.map((config) {
+            final String normalized = _normalizeUuid(config.characteristicUuid);
+            final SensorData? sensorData = latestData[normalized];
+            final bool isActive = statusMap[normalized] ?? false;
+            final Color color = _colorForUuid(config.characteristicUuid);
+            final String valueText = sensorData?.formattedValue ?? '--';
+            final String timeText = sensorData != null
+                ? DateFormat('HH:mm:ss').format(sensorData.timestamp)
+                : '--';
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(top: 4),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _selectedConfig != null
-                              ? 'UUID配置: ${_selectedConfig!.name}'
-                              : 'UUID配置: 未选择',
+                          config.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.monitoringServiceLabel(config.serviceUuid),
                           style: const TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.black54,
                           ),
                         ),
-                        if (_selectedConfig != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            _selectedConfig!.description ?? '无描述',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
+                        Text(
+                          l10n.monitoringCharacteristicLabel(
+                            config.characteristicUuid,
                           ),
-                        ],
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  // UUID选择按钮
-                  ElevatedButton.icon(
-                    onPressed: () => _showCharacteristicSelector(),
-                    icon: const Icon(Icons.settings, size: 16),
-                    label: const Text('选择UUID'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      textStyle: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // 第二行：控制按钮
-              Row(
-                children: [
-                  // 开始/停止监听按钮
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isDataNotificationActive
-                          ? _stopDataNotification
-                          : _startDataNotification,
-                      icon: Icon(
-                        _isDataNotificationActive
-                            ? Icons.stop
-                            : Icons.play_arrow,
-                        size: 16,
-                      ),
-                      label: Text(_isDataNotificationActive ? '停止监听' : '开始监听'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isDataNotificationActive
-                            ? Colors.red
-                            : Colors.green,
-                        foregroundColor: Colors.white,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        textStyle: const TextStyle(fontSize: 12),
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.green : Colors.grey,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          isActive
+                              ? l10n.monitoringChipActive
+                              : l10n.monitoringChipInactive,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 清空图表按钮
-                  ElevatedButton.icon(
-                    onPressed: _sensorData.isNotEmpty ? _clearChartData : null,
-                    icon: const Icon(Icons.clear_all, size: 16),
-                    label: const Text('清空图表'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      const SizedBox(height: 8),
+                      Text(
+                        valueText,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      textStyle: const TextStyle(fontSize: 12),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.monitoringLastUpdated(timeText),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black45,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  /// 显示UUID配置管理器
-  void _showCharacteristicSelector() async {
-    final configs = await _uuidConfigService.getAllConfigs();
+  Widget _buildSensorChart(BluetoothProvider bluetoothProvider) {
+    final l10n = context.l10n;
+    if (_selectedConfigs.isEmpty) {
+      return _buildEmptyChart(
+        title: l10n.monitoringChartTitle,
+        message: l10n.monitoringEmptyCurrentMessage,
+      );
+    }
 
-    if (!mounted) return;
+    final Map<String, List<SensorData>> histories = {};
+    DateTime? earliest;
+    DateTime? latest;
+    double minValue = double.infinity;
+    double maxValue = -double.infinity;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('UUID配置管理'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 保存的配置列表
-              if (configs.isNotEmpty) ...[
-                const Text(
-                  '保存的配置:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                ...configs.map((config) => _buildConfigTile(config)),
-                const Divider(),
+    for (final UuidConfig config in _selectedConfigs) {
+      final String normalized = _normalizeUuid(config.characteristicUuid);
+      final List<SensorData> history = bluetoothProvider.getSensorDataHistory(
+        normalized,
+      );
+      if (history.isEmpty) continue;
+
+      histories[normalized] = history;
+
+      for (final SensorData data in history) {
+        final DateTime? currentEarliest = earliest;
+        if (currentEarliest == null ||
+            data.timestamp.isBefore(currentEarliest)) {
+          earliest = data.timestamp;
+        }
+        final DateTime? currentLatest = latest;
+        if (currentLatest == null || data.timestamp.isAfter(currentLatest)) {
+          latest = data.timestamp;
+        }
+        if (data.value < minValue) minValue = data.value;
+        if (data.value > maxValue) maxValue = data.value;
+      }
+    }
+
+    if (histories.isEmpty || earliest == null || latest == null) {
+      return _buildEmptyChart(
+        title: l10n.monitoringChartTitle,
+        message: l10n.monitoringChartEmptyMessage,
+      );
+    }
+
+    final DateTime startTime = earliest;
+    final DateTime endTime = latest;
+    double maxXSeconds =
+        (endTime.millisecondsSinceEpoch - startTime.millisecondsSinceEpoch) /
+        1000.0;
+    if (maxXSeconds <= 0) {
+      maxXSeconds = 1;
+    }
+
+    final double range = maxValue - minValue;
+    double padding = range.abs() * 0.1;
+    if (padding == 0) {
+      padding = maxValue == 0 ? 1 : maxValue.abs() * 0.1;
+    }
+    if (padding == 0) padding = 1;
+
+    double verticalInterval = range.abs() / 4;
+    if (verticalInterval <= 0) {
+      verticalInterval = (maxValue.abs() / 4).abs();
+    }
+    if (verticalInterval <= 0) verticalInterval = 1;
+
+    double horizontalInterval = maxXSeconds / 4;
+    if (horizontalInterval <= 0) horizontalInterval = 1;
+
+    final List<LineChartBarData> lineBars = [];
+    final List<UuidConfig> configOrder = [];
+
+    for (final UuidConfig config in _selectedConfigs) {
+      final String normalized = _normalizeUuid(config.characteristicUuid);
+      final List<SensorData>? history = histories[normalized];
+      if (history == null || history.isEmpty) continue;
+
+      final Color color = _colorForUuid(config.characteristicUuid);
+      final List<FlSpot> spots = history
+          .map(
+            (data) => FlSpot(
+              (data.timestamp.millisecondsSinceEpoch -
+                      startTime.millisecondsSinceEpoch) /
+                  1000.0,
+              data.value,
+            ),
+          )
+          .toList();
+
+      lineBars.add(
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          color: color,
+          barWidth: 3,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(
+            show: true,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                color.withValues(alpha: 0.18),
+                color.withValues(alpha: 0.0),
               ],
-
-              // 添加新配置按钮
-              ListTile(
-                title: const Text('添加新配置'),
-                subtitle: const Text('创建新的UUID配置'),
-                leading: const Icon(Icons.add, color: Colors.green),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showAddConfigDialog();
-                },
-              ),
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    );
-  }
+      );
+      configOrder.add(config);
+    }
 
-  /// 构建配置项瓦片
-  Widget _buildConfigTile(UuidConfig config) {
-    return ListTile(
-      title: Text(config.name),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (config.description != null)
-            Text(
-              config.description!,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          Text(
-            '服务: ${config.serviceUuid}',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-          Text(
-            '特征值: ${config.characteristicUuid}',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-          if (config.lastUsed != null)
-            Text(
-              '最后使用: ${_formatDateTime(config.lastUsed!)}',
-              style: const TextStyle(fontSize: 9, color: Colors.grey),
-            ),
-        ],
-      ),
-      leading: Radio<String>(
-        value: config.id,
-        groupValue: _selectedConfig?.id ?? '',
-        onChanged: (value) {
-          setState(() {
-            _selectedConfig = config;
-          });
-          _uuidConfigService.setSelectedConfig(config.id);
-          Navigator.pop(context);
-          _onConfigChanged();
-        },
-      ),
-      trailing: PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'edit') {
-            _showEditConfigDialog(config);
-          } else if (value == 'delete') {
-            _showDeleteConfigDialog(config);
-          }
-        },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit, size: 16),
-                SizedBox(width: 8),
-                Text('编辑'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, size: 16, color: Colors.red),
-                SizedBox(width: 8),
-                Text('删除', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    if (lineBars.isEmpty) {
+      return _buildEmptyChart(
+        title: l10n.monitoringChartTitle,
+        message: l10n.monitoringChartEmptyMessage,
+      );
+    }
 
-  /// 显示添加配置对话框
-  void _showAddConfigDialog() {
-    _showConfigDialog();
-  }
+    final DateFormat timeFormatter = DateFormat('HH:mm:ss');
 
-  /// 显示编辑配置对话框
-  void _showEditConfigDialog(UuidConfig config) {
-    _showConfigDialog(config: config);
-  }
-
-  /// 构建当前数据卡片
-  Widget _buildCurrentDataCard() {
-    return Consumer<SensorDataProvider>(
-      builder: (context, sensorDataProvider, child) {
-        final latestData = sensorDataProvider.latestData;
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                spreadRadius: 1,
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Icon(Icons.sensors, color: Colors.green, size: 48),
-              const SizedBox(height: 12),
-              const Text(
-                '传感器数据',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                latestData?.formattedValue ?? '--',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[600],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                latestData != null
-                    ? '更新时间: ${latestData.formattedTimestamp}'
-                    : '等待数据...',
-                style: const TextStyle(fontSize: 12, color: Colors.black38),
-              ),
-              const SizedBox(height: 8),
-              // RSSI信号强度显示
-              Consumer<BluetoothProvider>(
-                builder: (context, bluetoothProvider, child) {
-                  final isConnected = bluetoothProvider.isConnected;
-                  final currentRssi = bluetoothProvider.state.currentRssi;
-
-                  if (isConnected && currentRssi != null) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.signal_cellular_alt,
-                          size: 16,
-                          color: _getRssiColor(currentRssi),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$currentRssi dBm',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _getRssiColor(currentRssi),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _getRssiDescription(currentRssi),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _getRssiColor(currentRssi),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// 构建传感器数据图表
-  Widget _buildSensorChart() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Colors.blue.shade50.withValues(alpha: 0.3)],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -786,153 +1469,126 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.8),
-            spreadRadius: -2,
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
         ],
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.timeline, color: Colors.blue.shade600, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                '实时数据图表',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              ),
-              const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade400,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_sensorData.length}个数据点',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                child: const Icon(Icons.timeline, color: Colors.blue),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                l10n.monitoringChartTitle,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                lineTouchData: LineTouchData(
-                  enabled: true,
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) => Colors.blue.shade800,
+          const SizedBox(height: 16),
+            if (configOrder.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildChartLegend(configOrder),
+              ),
+            SizedBox(
+              height: 320,
+              child: LineChart(
+                LineChartData(
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
                     tooltipPadding: const EdgeInsets.all(8),
-                    getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                      return touchedBarSpots.map((barSpot) {
-                        final flSpot = barSpot;
+                    getTooltipColor: (_) => Colors.black87,
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots
+                          .map((spot) {
+                            if (spot.barIndex >= configOrder.length) {
+                              return null;
+                            }
+                            final UuidConfig config =
+                                configOrder[spot.barIndex];
+                            final List<SensorData> history =
+                                histories[_normalizeUuid(
+                                  config.characteristicUuid,
+                                )] ??
+                                <SensorData>[];
+                            final SensorData? data =
+                                (spot.spotIndex >= 0 &&
+                                    spot.spotIndex < history.length)
+                                ? history[spot.spotIndex]
+                                : null;
+                            final String valueText = data != null
+                                ? data.value.toStringAsFixed(2)
+                                : spot.y.toStringAsFixed(2);
+                            final String timeText = data != null
+                                ? timeFormatter.format(data.timestamp)
+                                : timeFormatter.format(
+                                    startTime.add(
+                                      Duration(
+                                        milliseconds: (spot.x * 1000).round(),
+                                      ),
+                                    ),
+                                  );
+
                         return LineTooltipItem(
-                          '数值: ${flSpot.y.toStringAsFixed(2)}\n时间: ${((_timeIndex - flSpot.x).toInt())}s前',
+                          l10n.monitoringTooltip(config.name, valueText, timeText),
                           const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
                             fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         );
-                      }).toList();
+                          })
+                          .whereType<LineTooltipItem>()
+                          .toList();
                     },
                   ),
-                  touchCallback:
-                      (FlTouchEvent event, LineTouchResponse? touchResponse) {
-                        // 可以在这里添加触摸回调逻辑
-                      },
-                  handleBuiltInTouches: true,
                 ),
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: true,
                   drawHorizontalLine: true,
-                  horizontalInterval: 5,
-                  verticalInterval: _sensorData.length > 10 ? 10 : 5,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      strokeWidth: 1,
-                      dashArray: [5, 5],
-                    );
-                  },
-                  getDrawingVerticalLine: (value) {
-                    return FlLine(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      strokeWidth: 1,
-                      dashArray: [5, 5],
-                    );
-                  },
+                  verticalInterval: horizontalInterval,
+                  horizontalInterval: verticalInterval,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    strokeWidth: 1,
+                  ),
+                  getDrawingVerticalLine: (_) => FlLine(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    strokeWidth: 1,
+                  ),
                 ),
                 titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: AxisTitles(
+                  topTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
-                  topTitles: AxisTitles(
+                  rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 30,
-                      interval: _sensorData.length > 10
-                          ? (_sensorData.length / 5).ceilToDouble()
-                          : 2,
-                      getTitlesWidget: (double value, TitleMeta meta) {
-                        // 显示相对时间（秒前）
-                        if (_sensorData.isNotEmpty) {
-                          final latestX = _sensorData.last.x;
-                          final secondsAgo = (latestX - value).toInt();
-                          return SideTitleWidget(
-                            meta: meta,
-                            child: Text(
-                              secondsAgo == 0 ? '现在' : '${secondsAgo}s前',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                              ),
-                            ),
-                          );
-                        }
+                      reservedSize: 40,
+                      interval: horizontalInterval,
+                      getTitlesWidget: (value, meta) {
+                        final DateTime labelTime = startTime.add(
+                          Duration(milliseconds: (value * 1000).round()),
+                        );
                         return SideTitleWidget(
                           meta: meta,
+                          space: 6,
                           child: Text(
-                            '${value.toInt()}',
+                            timeFormatter.format(labelTime),
                             style: const TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
                               fontSize: 10,
+                              color: Colors.black54,
                             ),
                           ),
                         );
@@ -942,17 +1598,17 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 5,
-                      reservedSize: 42,
-                      getTitlesWidget: (double value, TitleMeta meta) {
+                      reservedSize: 48,
+                      interval: verticalInterval,
+                      getTitlesWidget: (value, meta) {
                         return SideTitleWidget(
                           meta: meta,
+                          space: 6,
                           child: Text(
-                            '${value.toInt()}',
+                            value.toStringAsFixed(1),
                             style: const TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 10,
+                              color: Colors.black54,
                             ),
                           ),
                         );
@@ -964,64 +1620,11 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                   show: true,
                   border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                 ),
-                minX: _sensorData.isEmpty
-                    ? 0
-                    : _sensorData.length < _maxDataPoints
-                    ? 0
-                    : _sensorData.first.x,
-                maxX: _sensorData.isEmpty
-                    ? 10
-                    : _sensorData.length < _maxDataPoints
-                    ? _maxDataPoints.toDouble()
-                    : _sensorData.last.x,
-                minY: _getMinValue() - 2,
-                maxY: _getMaxValue() + 2,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _sensorData.isEmpty
-                        ? [const FlSpot(0, 0)]
-                        : _sensorData,
-                    isCurved: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.blue.shade400,
-                        Colors.cyan.shade300,
-                        Colors.teal.shade400,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        // 最新数据点高亮显示
-                        final isLatest = index == _sensorData.length - 1;
-                        return FlDotCirclePainter(
-                          radius: isLatest ? 5 : 3,
-                          color: isLatest
-                              ? Colors.orange
-                              : Colors.blue.shade600,
-                          strokeWidth: isLatest ? 3 : 2,
-                          strokeColor: Colors.white,
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.blue.withValues(alpha: 0.3),
-                          Colors.cyan.withValues(alpha: 0.1),
-                          Colors.teal.withValues(alpha: 0.05),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ],
+                minX: 0,
+                maxX: maxXSeconds,
+                minY: minValue - padding,
+                maxY: maxValue + padding,
+                lineBarsData: lineBars,
               ),
             ),
           ),
@@ -1030,380 +1633,111 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
     );
   }
 
-  /// 获取数据的最小值
-  double _getMinValue() {
-    if (_sensorData.isEmpty) return 0;
-    return _sensorData.map((spot) => spot.y).reduce((a, b) => a < b ? a : b);
-  }
-
-  /// 获取数据的最大值
-  double _getMaxValue() {
-    if (_sensorData.isEmpty) return 10;
-    return _sensorData.map((spot) => spot.y).reduce((a, b) => a > b ? a : b);
-  }
-
-  /// 根据RSSI值获取颜色
-  Color _getRssiColor(int rssi) {
-    if (rssi >= -50) return Colors.green;
-    if (rssi >= -60) return Colors.lightGreen;
-    if (rssi >= -70) return Colors.orange;
-    return Colors.red;
-  }
-
-  /// 根据RSSI值获取描述
-  String _getRssiDescription(int rssi) {
-    if (rssi >= -50) return '优秀';
-    if (rssi >= -60) return '良好';
-    if (rssi >= -70) return '一般';
-    return '较弱';
-  }
-
-  /// 开始数据监听
-  void _startDataNotification() async {
-    final bluetoothProvider = context.read<BluetoothProvider>();
-
-    if (!bluetoothProvider.state.isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先连接设备'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    if (_selectedConfig == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先选择UUID配置'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // 使用选中的UUID配置
-    bool success = await bluetoothProvider.setupDataNotification(
-      serviceUuid: _selectedConfig!.serviceUuid,
-      characteristicUuid: _selectedConfig!.characteristicUuid,
-    );
-
-    if (mounted) {
-      setState(() {
-        _isDataNotificationActive = success;
-      });
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.play_arrow, color: Colors.white),
-                SizedBox(width: 12),
-                Text('数据监听已启动'),
-              ],
+  Widget _buildChartLegend(List<UuidConfig> configs) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: configs.map((config) {
+        final Color color = _colorForUuid(config.characteristicUuid);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 12),
-                Text('启动监听失败，请检查UUID配置'),
-              ],
+            const SizedBox(width: 6),
+            Text(
+              config.name,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
+          ],
         );
-      }
-    }
-  }
-
-  /// 停止数据监听
-  void _stopDataNotification() async {
-    final bluetoothProvider = context.read<BluetoothProvider>();
-
-    // 停止数据通知，但保持BLE连接
-    final success = await bluetoothProvider.stopDataNotification();
-
-    if (mounted) {
-      setState(() {
-        _isDataNotificationActive = false;
-        // 注意：不清空图表数据，让用户可以查看历史数据
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? '已停止数据监听，连接保持' : '停止监听失败'),
-          backgroundColor: success ? Colors.orange : Colors.red,
-        ),
-      );
-    }
-  }
-
-  /// 清空图表数据
-  void _clearChartData() {
-    setState(() {
-      _sensorData.clear();
-      _timeIndex = 0;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('图表数据已清空'), backgroundColor: Colors.blue),
+      }).toList(),
     );
   }
 
-  /// 配置更改后的处理 (不重连，只停止当前监听)
-  void _onConfigChanged() {
-    if (_isDataNotificationActive) {
-      // 如果正在监听，先停止监听
-      _stopDataNotification();
-
-      // 提示用户重新开始监听
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('UUID配置已更改，请重新点击"开始监听"'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-    }
-  }
-
-  /// 格式化日期时间
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.month.toString().padLeft(2, '0')}-'
-        '${dateTime.day.toString().padLeft(2, '0')} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-  }
-
-  /// 显示配置对话框
-  void _showConfigDialog({UuidConfig? config}) {
-    final nameController = TextEditingController(text: config?.name ?? '');
-    final serviceController = TextEditingController(
-      text: config?.serviceUuid ?? '',
-    );
-    final characteristicController = TextEditingController(
-      text: config?.characteristicUuid ?? '',
-    );
-    final descriptionController = TextEditingController(
-      text: config?.description ?? '',
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(config == null ? '添加UUID配置' : '编辑UUID配置'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  Widget _buildEmptyDataCard({required String title, required String message}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '配置名称',
-                  hintText: '例如: ESP32温度传感器',
-                  border: OutlineInputBorder(),
+              const Icon(Icons.info_outline, color: Colors.blue),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: serviceController,
-                decoration: const InputDecoration(
-                  labelText: '服务UUID',
-                  hintText: '例如: 4fafc201-1fb5-459e-8fcc-c5c9c331914b',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: characteristicController,
-                decoration: const InputDecoration(
-                  labelText: '特征值UUID',
-                  hintText: '例如: beb5483e-36e1-4688-b7f5-ea07361b26a8',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: '备注描述（可选）',
-                  hintText: '例如: 用于温度监测的ESP32设备',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => _saveConfig(
-              config,
-              nameController.text,
-              serviceController.text,
-              characteristicController.text,
-              descriptionController.text,
-            ),
-            child: Text(config == null ? '添加' : '保存'),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, color: Colors.black45),
           ),
         ],
       ),
     );
   }
 
-  /// 保存配置
-  void _saveConfig(
-    UuidConfig? existingConfig,
-    String name,
-    String serviceUuid,
-    String characteristicUuid,
-    String description,
-  ) {
-    if (name.trim().isEmpty ||
-        serviceUuid.trim().isEmpty ||
-        characteristicUuid.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请填写配置名称、服务UUID和特征值UUID'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!UuidConfigService.isValidUuid(serviceUuid.trim()) ||
-        !UuidConfigService.isValidUuid(characteristicUuid.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('UUID格式不正确，请检查输入'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final newConfig = UuidConfig(
-      id: existingConfig?.id ?? UuidConfigService.generateId(),
-      name: name.trim(),
-      serviceUuid: serviceUuid.trim(),
-      characteristicUuid: characteristicUuid.trim(),
-      description: description.trim().isEmpty ? null : description.trim(),
-      createdAt: existingConfig?.createdAt ?? DateTime.now(),
-      lastUsed: existingConfig?.lastUsed,
-    );
-
-    _uuidConfigService.saveConfig(newConfig).then((success) {
-      if (!mounted) return;
-
-      if (success) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Text(existingConfig == null ? '配置已添加' : '配置已更新'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+  Widget _buildEmptyChart({required String title, required String message}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        );
-        setState(() {}); // 刷新UI
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 12),
-                Text('保存失败，请重试'),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.timeline, color: Colors.blue),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        );
-      }
-    });
-  }
-
-  /// 显示删除配置对话框
-  void _showDeleteConfigDialog(UuidConfig config) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除配置"${config.name}"吗？此操作不可恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              // 在async操作之前获取引用
-              final navigator = Navigator.of(context);
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-              _uuidConfigService.deleteConfig(config.id).then((success) {
-                if (!mounted) return;
-
-                navigator.pop();
-                if (success) {
-                  // 如果删除的是当前选中的配置，清除选择
-                  if (_selectedConfig?.id == config.id) {
-                    setState(() {
-                      _selectedConfig = null;
-                    });
-                    _uuidConfigService.clearSelectedConfig();
-                  }
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      const SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.white),
-                            SizedBox(width: 12),
-                            Text('配置已删除'),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    setState(() {}); // 刷新UI
-                  }
-                } else {
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      const SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.error, color: Colors.white),
-                            SizedBox(width: 12),
-                            Text('删除失败，请重试'),
-                          ],
-                        ),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                }
-              });
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, color: Colors.black45),
           ),
         ],
       ),
@@ -1411,7 +1745,6 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
   }
 }
 
-/// 记录标签页
 class _RecordsTab extends StatefulWidget {
   const _RecordsTab();
 
@@ -1420,10 +1753,20 @@ class _RecordsTab extends StatefulWidget {
 }
 
 class _RecordsTabState extends State<_RecordsTab> {
-  final List<SensorRecord> _records = [];
+  final List<SensorRecord> _records = <SensorRecord>[];
   bool _isRecording = false;
-  Timer? _recordingTimer;
+  bool _isLoadingRecords = false;
+
   final CsvExportService _csvExportService = CsvExportService();
+  final SensorRecordingService _recordingService = SensorRecordingService();
+  final UuidConfigService _uuidConfigService = UuidConfigService();
+  final BluetoothService _bluetoothService = BluetoothService();
+
+  StreamSubscription<CharacteristicDataEvent>? _recordingSubscription;
+  Set<String> _recordingUuids = <String>{};
+  List<String> _displayUuidOrder = <String>[];
+  final Map<String, String> _uuidNameByNormalized = <String, String>{};
+  DateTime? _lastRecordTime;
 
   @override
   void initState() {
@@ -1433,15 +1776,18 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   @override
   void dispose() {
-    _recordingTimer?.cancel();
+    _recordingSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final bool hasRecords = _records.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('数据记录'),
+        title: Text(l10n.recordsTabTitle),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -1449,8 +1795,8 @@ class _RecordsTabState extends State<_RecordsTab> {
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download),
-            onPressed: _records.isNotEmpty ? _exportToCSV : null,
-            tooltip: '导出CSV',
+            onPressed: hasRecords ? _exportToCSV : null,
+            tooltip: l10n.recordsExportCsvTooltip,
           ),
           IconButton(
             icon: Icon(_isRecording ? Icons.stop : Icons.play_arrow),
@@ -1478,8 +1824,16 @@ class _RecordsTabState extends State<_RecordsTab> {
     );
   }
 
-  /// 构建记录状态卡片
   Widget _buildRecordingStatus() {
+    final l10n = context.l10n;
+    final DateTime? lastTime = _lastRecordTime ?? (_records.isNotEmpty ? _records.last.timestamp : null);
+    final String lastTimeLabel = lastTime == null
+        ? '--'
+        : DateFormat('HH:mm:ss').format(lastTime.toLocal());
+    final List<String> uuidOrderForDisplay = _displayUuidOrder.isNotEmpty
+        ? _displayUuidOrder
+        : _csvExportService.collectCharacteristicUuids(_records);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1496,29 +1850,29 @@ class _RecordsTabState extends State<_RecordsTab> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '记录状态',
-                style: TextStyle(
+              Text(
+                l10n.recordsStatusTitle,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _isRecording ? Colors.green : Colors.grey,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  _isRecording ? '记录中' : '已停止',
+                  _isRecording
+                      ? l10n.recordsStatusRecording
+                      : l10n.recordsStatusStopped,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -1530,52 +1884,87 @@ class _RecordsTabState extends State<_RecordsTab> {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                children: [
-                  const Text(
-                    '总记录数',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_records.length}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ],
+              _buildStatusMetric(
+                title: l10n.recordsMetricTotalRecords,
+                value: '${_records.length}',
+                color: Colors.blue,
               ),
-              Container(width: 1, height: 40, color: Colors.grey[300]),
-              Column(
-                children: [
-                  const Text(
-                    '记录间隔',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '1秒',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
+              _buildStatusMetric(
+                title: l10n.recordsMetricFeatureCount,
+                value: '${uuidOrderForDisplay.length}',
+                color: Colors.orange,
+              ),
+              _buildStatusMetric(
+                title: l10n.recordsMetricLastTime,
+                value: lastTimeLabel,
+                color: Colors.teal,
               ),
             ],
           ),
+          if (uuidOrderForDisplay.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              l10n.recordsCurrentFeaturesTitle,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: uuidOrderForDisplay
+                  .map(
+                    (uuid) => Chip(
+                      label: Text(_uuidDisplayName(uuid)),
+                      backgroundColor: Colors.blue.withValues(alpha: 0.08),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  /// 构建记录列表
+  Widget _buildStatusMetric({
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildRecordsList() {
+    final l10n = context.l10n;
+    if (_isLoadingRecords) {
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
@@ -1590,302 +1979,459 @@ class _RecordsTabState extends State<_RecordsTab> {
             ),
           ],
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey, width: 0.2),
+        child: _records.isEmpty
+                        ? Center(
+                child: Text(
+                  l10n.recordsEmptyMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _records.length,
+                itemBuilder: (context, index) {
+                  final SensorRecord record =
+                      _records[_records.length - 1 - index];
+                  return _buildRecordTile(record);
+                },
               ),
-              child: const Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '时间戳',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '传感器数值',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _records.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '暂无记录数据\n点击右上角播放按钮开始记录',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _records.length,
-                      itemBuilder: (context, index) {
-                        final record =
-                            _records[_records.length - 1 - index]; // 倒序显示
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey.withValues(alpha: 0.1),
-                                width: 0.5,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  _formatTimestamp(record.timestamp),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  record.value.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  /// 切换记录状态
-  void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
-    });
+  Widget _buildRecordTile(SensorRecord record) {
+    final l10n = context.l10n;
+    final List<Widget> chips = _buildValueChips(record);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey[50],
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _formatTimestamp(record.timestamp),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (chips.isEmpty)
+            Text(
+              l10n.recordsNoSensorValues,
+              style: TextStyle(fontSize: 12, color: Colors.black45),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: chips,
+            ),
+        ],
+      ),
+    );
+  }
 
+  List<Widget> _buildValueChips(SensorRecord record) {
+    final List<Widget> chips = <Widget>[];
+    final Map<String, double> values = record.valuesByUuid;
+
+    final List<String> preferredOrder = _displayUuidOrder.isNotEmpty
+        ? _displayUuidOrder
+        : _csvExportService.collectCharacteristicUuids(_records);
+
+    final Set<String> appended = <String>{};
+
+    void addChip(String uuid, double? value) {
+      if (value == null) return;
+      final String displayName = _uuidDisplayName(uuid);
+      chips.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            '$displayName: ${value.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 12, color: Colors.black87),
+          ),
+        ),
+      );
+      appended.add(_normalizeUuid(uuid));
+    }
+
+    for (final String uuid in preferredOrder) {
+      addChip(uuid, record.valueForUuid(uuid));
+    }
+
+    for (final MapEntry<String, double> entry in values.entries) {
+      final String normalized = _normalizeUuid(entry.key);
+      if (appended.contains(normalized)) continue;
+      addChip(entry.key, entry.value);
+    }
+
+    return chips;
+  }
+
+  Future<void> _toggleRecording() async {
     if (_isRecording) {
-      _startRecording();
-    } else {
-      _stopRecording();
+      await _stopRecording();
+      return;
+    }
+
+    final bool started = await _startRecording();
+    if (!started && mounted) {
+      setState(() {
+        _isRecording = false;
+      });
     }
   }
 
-  /// 开始记录
-  void _startRecording() {
-    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final sensorDataProvider = Provider.of<SensorDataProvider>(
-        context,
-        listen: false,
-      );
-      final value =
-          sensorDataProvider.latestData?.value ??
-          (20.0 + (DateTime.now().millisecondsSinceEpoch % 1000) / 100); // 模拟数据
+  Future<bool> _startRecording() async {
+    final l10n = context.l10n;
+    final BluetoothProvider bluetoothProvider =
+        Provider.of<BluetoothProvider>(context, listen: false);
 
-      final record = SensorRecord(timestamp: DateTime.now(), value: value);
+    if (!bluetoothProvider.isConnected) {
+      _showSnackBar(l10n.monitoringConnectRequired, color: Colors.orange);
+      return false;
+    }
 
+    final List<UuidConfig> configs =
+        await _uuidConfigService.getSelectedConfigs();
+    final Set<String> targetUuids = configs
+        .map((config) => config.characteristicUuid.trim())
+        .where((uuid) => uuid.isNotEmpty)
+        .map(_normalizeUuid)
+        .toSet();
+
+    if (targetUuids.isEmpty) {
+      _showSnackBar(l10n.recordsSnackbarSelectFeatures, color: Colors.orange);
+      return false;
+    }
+
+    final bool notificationsReady = await _ensureNotifications(
+      bluetoothProvider,
+      configs,
+      targetUuids,
+    );
+
+    if (!notificationsReady) {
+      _showSnackBar(l10n.monitoringSnackCannotEnable, color: Colors.red);
+      return false;
+    }
+
+    await _recordingSubscription?.cancel();
+    final Map<String, String> namesByUuid = <String, String>{};
+    final List<String> order = <String>[];
+    for (final UuidConfig config in configs) {
+      final String normalized = _normalizeUuid(config.characteristicUuid);
+      if (normalized.isEmpty) continue;
+      order.add(normalized);
+      final String displayName = config.name.trim().isNotEmpty
+          ? config.name.trim()
+          : config.characteristicUuid.trim();
+      namesByUuid[normalized] = displayName;
+    }
+    if (mounted) {
       setState(() {
-        _records.add(record);
+        _recordingUuids = targetUuids;
+        _displayUuidOrder = order;
+        _uuidNameByNormalized
+          ..clear()
+          ..addAll(namesByUuid);
       });
+    } else {
+      _recordingUuids = targetUuids;
+      _displayUuidOrder = order;
+      _uuidNameByNormalized
+        ..clear()
+        ..addAll(namesByUuid);
+    }
 
-      _saveRecords();
+    _recordingSubscription =
+        _bluetoothService.characteristicDataStream.listen(
+      (CharacteristicDataEvent event) {
+        final String normalizedUuid = _normalizeUuid(event.characteristicUuid);
+        if (!_recordingUuids.contains(normalizedUuid)) {
+          return;
+        }
+
+        final SensorRecord record = SensorRecord.single(
+          uuid: normalizedUuid,
+          value: event.data.value,
+          timestamp: event.data.timestamp,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _records.add(record);
+          _lastRecordTime = record.timestamp;
+          if (!_displayUuidOrder.contains(normalizedUuid)) {
+            _displayUuidOrder.add(normalizedUuid);
+          }
+          _uuidNameByNormalized.putIfAbsent(
+            normalizedUuid,
+            () => event.characteristicUuid.toUpperCase(),
+          );
+        });
+        _persistRecordsAsync();
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        _handleRecordingError(error);
+      },
+    );
+
+    if (!mounted) {
+      return false;
+    }
+
+    setState(() {
+      _isRecording = true;
     });
+    _showSnackBar(l10n.recordsSnackbarRecordingStarted, color: Colors.green);
+    return true;
   }
 
-  /// 停止记录
-  void _stopRecording() {
-    _recordingTimer?.cancel();
-    _recordingTimer = null;
+  Future<void> _stopRecording() async {
+    final l10n = context.l10n;
+    await _recordingSubscription?.cancel();
+    _recordingSubscription = null;
+    _recordingUuids = <String>{};
+
+    if (!mounted) return;
+
+    setState(() {
+      _isRecording = false;
+    });
+    _showSnackBar(l10n.recordsSnackbarRecordingStopped);
   }
 
-  /// 清除所有记录
+  void _handleRecordingError(Object error) {
+    final l10n = context.l10n;
+    _showSnackBar(l10n.recordsSnackbarRecordingError('$error'), color: Colors.red);
+    _stopRecording();
+  }
+
   void _clearAllRecords() {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除所有记录数据吗？此操作不可恢复。'),
+        title: Text(l10n.dialogConfirmDeleteTitle),
+        content: Text(l10n.recordsConfirmDeleteAllMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 _records.clear();
+                _lastRecordTime = null;
               });
-              _saveRecords();
-              Navigator.pop(context);
+              await _recordingService.clear();
+              if (!mounted) return;
+              Navigator.of(this.context).pop();
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text(
+              l10n.commonDelete,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 格式化时间戳
   String _formatTimestamp(DateTime timestamp) {
-    return '${timestamp.month.toString().padLeft(2, '0')}-'
-        '${timestamp.day.toString().padLeft(2, '0')} '
-        '${timestamp.hour.toString().padLeft(2, '0')}:'
-        '${timestamp.minute.toString().padLeft(2, '0')}:'
-        '${timestamp.second.toString().padLeft(2, '0')}';
+    final DateTime local = timestamp.toLocal();
+    return '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}:'
+        '${local.second.toString().padLeft(2, '0')}';
   }
 
-  /// 加载记录数据
-  void _loadRecords() {
-    // 记录数据在内存中管理，应用重启后会清空
+  Future<void> _loadRecords() async {
+    setState(() {
+      _isLoadingRecords = true;
+    });
+
+    final List<SensorRecord> storedRecords =
+        await _recordingService.loadRecords();
+    final List<UuidConfig> configs = await _uuidConfigService.getSelectedConfigs();
+    final DateTime? lastTime =
+        storedRecords.isNotEmpty ? storedRecords.last.timestamp : null;
+    final List<String> order =
+        _csvExportService.collectCharacteristicUuids(storedRecords);
+    final Map<String, String> names = <String, String>{};
+    for (final UuidConfig config in configs) {
+      final String normalized = _normalizeUuid(config.characteristicUuid);
+      if (normalized.isEmpty) continue;
+      names[normalized] = config.name.trim().isNotEmpty
+          ? config.name.trim()
+          : config.characteristicUuid.trim();
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _records
+        ..clear()
+        ..addAll(storedRecords);
+      _isLoadingRecords = false;
+      _displayUuidOrder = order;
+      if (names.isNotEmpty) {
+        _uuidNameByNormalized
+          ..clear()
+          ..addAll(names);
+      }
+      _lastRecordTime = lastTime;
+    });
   }
 
-  /// 保存记录数据
-  void _saveRecords() {
-    // 记录数据在内存中管理，应用重启后会清空
+  void _persistRecordsAsync() {
+    final List<SensorRecord> snapshot = List<SensorRecord>.from(_records);
+    Future.microtask(() => _recordingService.saveRecords(snapshot));
   }
 
-  /// 导出CSV文件
   void _exportToCSV() async {
+    final l10n = context.l10n;
     if (_records.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('没有数据可导出'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      _showSnackBar(l10n.recordsSnackbarNoData, color: Colors.orange);
       return;
     }
 
-    // 显示导出选项对话框
     _showExportOptionsDialog();
   }
 
-  /// 显示导出选项对话框
   void _showExportOptionsDialog() {
+    final l10n = context.l10n;
+    final List<String> exportUuids = _displayUuidOrder.isNotEmpty
+        ? _displayUuidOrder
+        : _csvExportService.collectCharacteristicUuids(_records);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('导出数据'),
+        title: Text(l10n.recordsExportDialogTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('共有 ${_records.length} 条记录'),
+            Text(l10n.recordsExportRecordCount(_records.length)),
+            const SizedBox(height: 8),
+            Text(l10n.recordsExportFeatureCount(exportUuids.length)),
+            const SizedBox(height: 12),
+            if (exportUuids.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: exportUuids
+                    .map(
+                      (uuid) => Chip(
+                        label: Text(_uuidDisplayName(uuid)),
+                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                      ),
+                    )
+                    .toList(),
+              ),
             const SizedBox(height: 16),
-            const Text('请选择导出方式:'),
+            Text(l10n.recordsExportChooseFormat),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _exportToFile();
             },
-            child: const Text('保存到文件'),
+            child: Text(l10n.recordsExportSaveFile),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _showCSVPreview();
             },
-            child: const Text('预览/复制'),
+            child: Text(l10n.recordsExportPreview),
           ),
         ],
       ),
     );
   }
 
-  /// 导出到文件
   void _exportToFile() async {
+    final l10n = context.l10n;
     try {
-      // 显示加载指示器
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('正在导出...'),
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Text(l10n.recordsExporting),
             ],
           ),
         ),
       );
 
-      // 导出文件
-      final filePath = await _csvExportService.exportSensorRecords(_records);
-      final fileSize = await _csvExportService.getFileSize(filePath);
-      final formattedSize = _csvExportService.formatFileSize(fileSize);
+      final List<String> exportOrder = _displayUuidOrder.isNotEmpty
+          ? _displayUuidOrder
+          : _csvExportService.collectCharacteristicUuids(_records);
+      final File file = await _csvExportService.exportSensorRecords(
+        _records,
+        orderedCharacteristicUuids: exportOrder,
+      );
+      final int fileSize = await _csvExportService.getFileSize(file);
+      final String formattedSize =
+          _csvExportService.formatFileSize(fileSize);
 
-      // 关闭加载指示器
       if (mounted) Navigator.pop(context);
 
-      // 显示成功对话框
-      if (mounted) _showExportSuccessDialog(filePath, formattedSize);
+      if (mounted) _showExportSuccessDialog(file.path, formattedSize);
     } catch (e) {
-      // 关闭加载指示器
       if (mounted) Navigator.pop(context);
 
-      // 显示错误信息
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.red),
-        );
-      }
+      _showSnackBar(l10n.recordsExportFailed('$e'), color: Colors.red);
     }
   }
 
-  /// 显示导出成功对话框
   void _showExportSuccessDialog(String filePath, String fileSize) {
+    final l10n = context.l10n;
+    final List<String> exportUuids = _displayUuidOrder.isNotEmpty
+        ? _displayUuidOrder
+        : _csvExportService.collectCharacteristicUuids(_records);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('导出成功'),
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 8),
+            Text(l10n.recordsExportSuccessTitle),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('文件已保存到:'),
+            Text(l10n.recordsExportSuccessPathLabel),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(8),
@@ -1899,27 +2445,43 @@ class _RecordsTabState extends State<_RecordsTab> {
               ),
             ),
             const SizedBox(height: 8),
-            Text('文件大小: $fileSize'),
-            Text('记录数量: ${_records.length} 条'),
+            Text('${l10n.recordsExportSuccessSizeLabel} $fileSize'),
+            Text('${l10n.recordsExportSuccessRecordsLabel} ${_records.length}'),
+            Text('${l10n.recordsExportSuccessFeaturesLabel} ${exportUuids.length}'),
+            if (exportUuids.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: exportUuids
+                    .map(
+                      (uuid) => Chip(
+                        label: Text(_uuidDisplayName(uuid)),
+                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
+            child: Text(l10n.commonConfirm),
           ),
         ],
       ),
     );
   }
 
-  /// 显示CSV预览
   void _showCSVPreview() {
-    final csvContent = _generateCSVContent();
+    final l10n = context.l10n;
+    final String csvContent = _generateCSVContent();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('CSV数据预览'),
+        title: Text(l10n.recordsCsvPreviewTitle),
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
@@ -1933,61 +2495,118 @@ class _RecordsTabState extends State<_RecordsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
+            child: Text(l10n.commonClose),
           ),
           TextButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: csvContent));
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('CSV数据已复制到剪贴板'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              _showSnackBar(l10n.recordsCsvCopied, color: Colors.green);
             },
-            child: const Text('复制'),
+            child: Text(l10n.commonCopy),
           ),
         ],
       ),
     );
   }
 
-  /// 生成CSV内容
   String _generateCSVContent() {
-    final buffer = StringBuffer();
-
-    // CSV头部
-    buffer.writeln('序号,时间,传感器数据');
-
-    // CSV数据行
-    for (int i = 0; i < _records.length; i++) {
-      final record = _records[i];
-      final timestamp = DateFormat(
-        'yyyy-MM-dd HH:mm:ss',
-      ).format(record.timestamp);
-      buffer.writeln('${i + 1},$timestamp,${record.value.toStringAsFixed(2)}');
+    if (_records.isEmpty) {
+      return context.l10n.recordsCsvHeader;
     }
-
-    return buffer.toString();
-  }
-}
-
-/// 通用传感器记录数据模型
-class SensorRecord {
-  final DateTime timestamp;
-  final double value;
-
-  SensorRecord({required this.timestamp, required this.value});
-
-  Map<String, dynamic> toJson() {
-    return {'timestamp': timestamp.millisecondsSinceEpoch, 'value': value};
-  }
-
-  factory SensorRecord.fromJson(Map<String, dynamic> json) {
-    return SensorRecord(
-      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
-      value: json['value'].toDouble(),
+    final List<String> exportOrder = _displayUuidOrder.isNotEmpty
+        ? _displayUuidOrder
+        : _csvExportService.collectCharacteristicUuids(_records);
+    return _csvExportService.buildCsvContent(
+      _records,
+      orderedCharacteristicUuids: exportOrder,
     );
   }
+
+  Future<bool> _ensureNotifications(
+    BluetoothProvider bluetoothProvider,
+    List<UuidConfig> configs,
+    Set<String> targetUuids,
+  ) async {
+    final Map<String, bool> activeStatus =
+        bluetoothProvider.notificationStatus;
+
+    final Set<String> pendingUuids = targetUuids
+        .where((uuid) => !(activeStatus[uuid] ?? false))
+        .toSet();
+
+    if (pendingUuids.isEmpty) {
+      return true;
+    }
+
+    final Map<String, Map<String, String>> groupedByService = {};
+    final Map<String, String> serviceOriginal = {};
+    final Map<String, String> withoutService = {};
+
+    for (final UuidConfig config in configs) {
+      final String trimmedCharacteristic = config.characteristicUuid.trim();
+      if (trimmedCharacteristic.isEmpty) continue;
+      final String normalizedCharacteristic =
+          _normalizeUuid(trimmedCharacteristic);
+      if (!pendingUuids.contains(normalizedCharacteristic)) continue;
+
+      final String serviceUuid = config.serviceUuid.trim();
+      if (serviceUuid.isEmpty) {
+        withoutService[normalizedCharacteristic] = trimmedCharacteristic;
+      } else {
+        final String normalizedService = _normalizeUuid(serviceUuid);
+        serviceOriginal.putIfAbsent(normalizedService, () => serviceUuid);
+        final Map<String, String> characteristicMap =
+            groupedByService.putIfAbsent(
+              normalizedService,
+              () => <String, String>{},
+            );
+        characteristicMap[normalizedCharacteristic] = trimmedCharacteristic;
+      }
+    }
+
+    bool anySuccess = false;
+    for (final MapEntry<String, Map<String, String>> entry
+        in groupedByService.entries) {
+      final String? serviceUuid = serviceOriginal[entry.key];
+      if (serviceUuid == null) continue;
+      final List<String> characteristics = entry.value.values.toList();
+      if (characteristics.isEmpty) continue;
+      final bool success = await bluetoothProvider.setupDataNotification(
+        serviceUuid: serviceUuid,
+        characteristicUuids: characteristics,
+      );
+      anySuccess = anySuccess || success;
+    }
+
+    if (withoutService.isNotEmpty) {
+      final bool success = await bluetoothProvider.setupDataNotification(
+        characteristicUuids: withoutService.values.toList(),
+      );
+      anySuccess = anySuccess || success;
+    }
+
+    final Map<String, bool> refreshedStatus =
+        bluetoothProvider.notificationStatus;
+    final bool hasActive = targetUuids.any(
+      (uuid) => refreshedStatus[uuid] == true,
+    );
+
+    return hasActive || anySuccess;
+  }
+
+  void _showSnackBar(String message, {Color color = Colors.blue}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  String _normalizeUuid(String uuid) => uuid.trim().toLowerCase();
+
+  String _uuidDisplayName(String uuid) {
+    final String normalized = _normalizeUuid(uuid);
+    return _uuidNameByNormalized[normalized] ?? uuid.toUpperCase();
+  }
 }
+

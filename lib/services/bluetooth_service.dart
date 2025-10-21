@@ -1,22 +1,43 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import 'package:permission_handler/permission_handler.dart';
 import '../models/models.dart';
+import 'bluetooth_exceptions.dart';
 
 /// 蓝牙服务类
+class CharacteristicDataEvent {
+  final String characteristicUuid;
+  final SensorData data;
+
+  CharacteristicDataEvent({
+    required this.characteristicUuid,
+    required this.data,
+  });
+}
+
+const String _unknownDeviceName = 'Unknown Device';
+
+
+
+
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
   factory BluetoothService() => _instance;
   BluetoothService._internal();
 
   fbp.BluetoothDevice? _connectedDevice;
-  fbp.BluetoothCharacteristic? _characteristic;
-  StreamSubscription<List<int>>? _dataSubscription;
+  final Map<String, fbp.BluetoothCharacteristic> _characteristics = {};
+  final Map<String, StreamSubscription<List<int>>> _notificationSubscriptions =
+      {};
   StreamSubscription<fbp.BluetoothConnectionState>? _deviceStateSubscription;
   Timer? _rssiTimer;
 
   // 数据流控制器
+  final StreamController<CharacteristicDataEvent>
+  _characteristicDataController =
+      StreamController<CharacteristicDataEvent>.broadcast();
   final StreamController<SensorData> _sensorDataController =
       StreamController<SensorData>.broadcast();
   final StreamController<DeviceInfo> _deviceDiscoveryController =
@@ -27,6 +48,8 @@ class BluetoothService {
       StreamController<int>.broadcast();
 
   // 公开的数据流
+  Stream<CharacteristicDataEvent> get characteristicDataStream =>
+      _characteristicDataController.stream;
   Stream<SensorData> get sensorDataStream => _sensorDataController.stream;
   Stream<DeviceInfo> get deviceDiscoveryStream =>
       _deviceDiscoveryController.stream;
@@ -79,7 +102,7 @@ class BluetoothService {
           fbp.FlutterBluePlus.connectedDevices;
       for (fbp.BluetoothDevice device in connectedDevices) {
         DeviceInfo deviceInfo = DeviceInfo(
-          name: device.platformName.isNotEmpty ? device.platformName : '未知设备',
+          name: device.platformName.isNotEmpty ? device.platformName : _unknownDeviceName,
           address: device.remoteId.str,
           isConnected: true,
         );
@@ -106,7 +129,7 @@ class BluetoothService {
                   ? result.device.platformName
                   : result.advertisementData.advName.isNotEmpty
                   ? result.advertisementData.advName
-                  : '未知设备',
+                  : _unknownDeviceName,
               address: result.device.remoteId.str,
               rssi: result.rssi,
               isConnected: false,
@@ -126,9 +149,13 @@ class BluetoothService {
       await scanSubscription.cancel();
       await fbp.FlutterBluePlus.stopScan();
     } catch (e) {
-      throw Exception('扫描BLE设备失败: $e');
+      throw BluetoothServiceException(
+        BluetoothErrorCode.scanFailed,
+        cause: e,
+      );
     }
 
+    _sortDevicesForPresentation(devices);
     return devices;
   }
 
@@ -168,12 +195,11 @@ class BluetoothService {
             _connectionStateController.add(
               BluetoothConnectionState.disconnected,
             );
-            _connectedDevice = null;
-            _characteristic = null;
+            unawaited(_cancelAllNotifications());
             _stopRssiMonitoring();
+            _connectedDevice = null;
             break;
           default:
-            // 处理其他状态（如connecting等已弃用状态）
             break;
         }
       });
@@ -188,115 +214,286 @@ class BluetoothService {
   }
 
   /// 匹配UUID并启动数据监听
-  Future<bool> setupDataNotification({
+  Future<Map<String, bool>> setupDataNotification({
     String? serviceUuid,
     String? characteristicUuid,
+    List<String>? characteristicUuids,
   }) async {
+    final List<String> requestedUuids = <String>[
+      if (characteristicUuids != null) ...characteristicUuids,
+      if ((characteristicUuids == null || characteristicUuids.isEmpty) &&
+          characteristicUuid != null)
+        characteristicUuid,
+    ].where((uuid) => uuid.trim().isNotEmpty).toList();
+
+    if (requestedUuids.isEmpty) {
+      return const {};
+    }
+
     if (_connectedDevice == null || !_connectedDevice!.isConnected) {
-      return false;
+      return {for (final uuid in requestedUuids) uuid: false};
     }
 
     try {
-      // 发现服务
-      List<fbp.BluetoothService> services = await _connectedDevice!
+      final Map<String, String> normalizedToOriginal = {};
+      for (final String uuid in requestedUuids) {
+        final String normalized = _normalizeUuid(uuid);
+        normalizedToOriginal.putIfAbsent(normalized, () => uuid);
+      }
+
+      final List<fbp.BluetoothService> services = await _connectedDevice!
           .discoverServices();
+      final String? normalizedServiceUuid = serviceUuid?.trim().toLowerCase();
+      final Map<String, bool> results = {};
 
-      // 查找指定的特征值
-      if (serviceUuid != null && characteristicUuid != null) {
-        // 使用指定的UUID查找
-        for (fbp.BluetoothService service in services) {
-          if (service.uuid.toString().toLowerCase() ==
-              serviceUuid.toLowerCase()) {
-            for (fbp.BluetoothCharacteristic characteristic
-                in service.characteristics) {
-              if (characteristic.uuid.toString().toLowerCase() ==
-                  characteristicUuid.toLowerCase()) {
-                _characteristic = characteristic;
-                break;
-              }
-            }
-            break;
-          }
+      for (final MapEntry<String, String> entry
+          in normalizedToOriginal.entries) {
+        final String normalizedUuid = entry.key;
+        final String originalUuid = entry.value;
+
+        debugPrint(
+          '[BluetoothService] Attempting to subscribe -> $originalUuid',
+        );
+
+        final fbp.BluetoothCharacteristic? characteristic = _findCharacteristic(
+          services,
+          normalizedUuid,
+          normalizedServiceUuid,
+        );
+
+        if (characteristic == null) {
+          debugPrint(
+            '[BluetoothService] Characteristic not found for $originalUuid',
+          );
+          results[originalUuid] = false;
+          continue;
         }
+
+        final bool success = await _startListeningToCharacteristic(
+          normalizedUuid: normalizedUuid,
+          characteristic: characteristic,
+        );
+        results[originalUuid] = success;
       }
 
-      if (_characteristic != null) {
-        _startListeningToData();
-        return true;
-      } else {
-        return false;
-      }
+      return results;
     } catch (e) {
-      return false;
+      debugPrint('[BluetoothService] setupDataNotification error: $e');
+      return {for (final uuid in requestedUuids) uuid: false};
     }
   }
 
-  /// 断开连接
   Future<void> disconnect() async {
     try {
       _connectionStateController.add(BluetoothConnectionState.disconnecting);
 
-      await _dataSubscription?.cancel();
-      _dataSubscription = null;
+      await _cancelAllNotifications();
+      await _deviceStateSubscription?.cancel();
+      _deviceStateSubscription = null;
+      _stopRssiMonitoring();
 
       await _connectedDevice?.disconnect();
       _connectedDevice = null;
-      _characteristic = null;
 
       _connectionStateController.add(BluetoothConnectionState.disconnected);
     } catch (e) {
       _connectionStateController.add(BluetoothConnectionState.error);
-      throw Exception('断开连接失败: $e');
+      throw BluetoothServiceException(
+        BluetoothErrorCode.disconnectionFailed,
+        cause: e,
+      );
     }
   }
 
-  /// 开始监听数据
-  void _startListeningToData() async {
-    if (_characteristic == null) return;
-
+  Future<bool> _startListeningToCharacteristic({
+    required String normalizedUuid,
+    required fbp.BluetoothCharacteristic characteristic,
+    bool isRetry = false,
+  }) async {
     try {
-      // 启用通知
-      await _characteristic!.setNotifyValue(true);
+      await _notificationSubscriptions[normalizedUuid]?.cancel();
+      _notificationSubscriptions.remove(normalizedUuid);
 
-      _dataSubscription = _characteristic!.lastValueStream.listen(
-        (List<int> data) {
-          try {
-            _parseAndEmitBinaryData(data);
-          } catch (e) {
-            // 数据解析错误，忽略
-          }
-        },
-        onError: (error) {
-          _connectionStateController.add(BluetoothConnectionState.error);
+      await characteristic.setNotifyValue(true);
+      final StreamSubscription<List<int>>
+      subscription = characteristic.lastValueStream.listen(
+        (List<int> data) => _handleIncomingData(normalizedUuid, data),
+        onError: (Object error) {
+          debugPrint(
+            '[BluetoothService] Notification stream error ($normalizedUuid): $error',
+          );
         },
         onDone: () {
-          _connectionStateController.add(BluetoothConnectionState.disconnected);
+          debugPrint(
+            '[BluetoothService] Notification stream closed ($normalizedUuid)',
+          );
         },
       );
-    } catch (e) {
-      _connectionStateController.add(BluetoothConnectionState.error);
-    }
-  }
 
-  /// 停止数据监听 (保持连接)
-  Future<bool> stopDataNotification() async {
-    try {
-      // 取消数据订阅
-      await _dataSubscription?.cancel();
-      _dataSubscription = null;
+      _notificationSubscriptions[normalizedUuid] = subscription;
+      _characteristics[normalizedUuid] = characteristic;
 
-      // 禁用通知 (保持连接)
-      if (_characteristic != null) {
-        await _characteristic!.setNotifyValue(false);
-      }
-
+      debugPrint('[BluetoothService] Notification started -> $normalizedUuid');
       return true;
     } catch (e) {
+      debugPrint(
+        '[BluetoothService] Notification failed for $normalizedUuid: $e',
+      );
+      if (!isRetry) {
+        debugPrint(
+          '[BluetoothService] Retrying notification for $normalizedUuid in 1s',
+        );
+        await Future.delayed(const Duration(seconds: 1));
+        return _startListeningToCharacteristic(
+          normalizedUuid: normalizedUuid,
+          characteristic: characteristic,
+          isRetry: true,
+        );
+      }
+
+      debugPrint(
+        '[BluetoothService] Notification retry failed for $normalizedUuid: $e',
+      );
+      _notificationSubscriptions.remove(normalizedUuid);
+      _characteristics.remove(normalizedUuid);
       return false;
     }
   }
 
-  /// 开始RSSI监控
+  void _handleIncomingData(String normalizedUuid, List<int> data) {
+    try {
+      if (data.length != 4) {
+        return;
+      }
+
+      final SensorData sensorData = SensorData.fromBinary(data);
+      _sensorDataController.add(sensorData);
+      _characteristicDataController.add(
+        CharacteristicDataEvent(
+          characteristicUuid: normalizedUuid,
+          data: sensorData,
+        ),
+      );
+    } catch (e) {
+      debugPrint(
+        '[BluetoothService] Failed to parse data for $normalizedUuid: $e',
+      );
+    }
+  }
+
+  fbp.BluetoothCharacteristic? _findCharacteristic(
+    List<fbp.BluetoothService> services,
+    String normalizedCharacteristicUuid,
+    String? normalizedServiceUuid,
+  ) {
+    for (final fbp.BluetoothService service in services) {
+      if (normalizedServiceUuid != null &&
+          service.uuid.toString().toLowerCase() != normalizedServiceUuid) {
+        continue;
+      }
+
+      for (final fbp.BluetoothCharacteristic characteristic
+          in service.characteristics) {
+        if (characteristic.uuid.toString().toLowerCase() ==
+            normalizedCharacteristicUuid) {
+          return characteristic;
+        }
+      }
+    }
+
+    return null;
+  }
+
+
+  void sortDiscoveredDevices(List<DeviceInfo> devices) {
+    _sortDevicesForPresentation(devices);
+  }
+
+  void _sortDevicesForPresentation(List<DeviceInfo> devices) {
+    devices.sort((DeviceInfo a, DeviceInfo b) {
+      final bool aHasName = _hasMeaningfulName(a.name);
+      final bool bHasName = _hasMeaningfulName(b.name);
+      if (aHasName != bHasName) {
+        return aHasName ? -1 : 1;
+      }
+
+      final int aRssi = a.rssi ?? -1000;
+      final int bRssi = b.rssi ?? -1000;
+      final int rssiCompare = bRssi.compareTo(aRssi);
+      if (rssiCompare != 0) {
+        return rssiCompare;
+      }
+
+      return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+    });
+  }
+
+  bool _hasMeaningfulName(String name) {
+    final String trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return false;
+    }
+    final String lower = trimmed.toLowerCase();
+    if (lower == _unknownDeviceName.toLowerCase()) {
+      return false;
+    }
+    if (lower.startsWith('unknown')) {
+      return false;
+    }
+    if (trimmed.startsWith('未知')) {
+      return false;
+    }
+    return true;
+  }
+
+  String _normalizeUuid(String uuid) => uuid.trim().toLowerCase();
+
+  Future<void> _cancelAllNotifications() async {
+    if (_notificationSubscriptions.isEmpty && _characteristics.isEmpty) {
+      return;
+    }
+
+    await stopDataNotification();
+  }
+
+  Future<Map<String, bool>> stopDataNotification({
+    List<String>? characteristicUuids,
+  }) async {
+    final List<String> targets =
+        (characteristicUuids != null && characteristicUuids.isNotEmpty)
+        ? characteristicUuids.map(_normalizeUuid).toList()
+        : _notificationSubscriptions.keys.toList();
+
+    final Map<String, bool> results = {};
+
+    for (final String target in targets) {
+      final String normalizedUuid = _normalizeUuid(target);
+      final StreamSubscription<List<int>>? subscription =
+          _notificationSubscriptions.remove(normalizedUuid);
+      bool cancelled = false;
+      if (subscription != null) {
+        await subscription.cancel();
+        cancelled = true;
+      }
+
+      final fbp.BluetoothCharacteristic? characteristic = _characteristics
+          .remove(normalizedUuid);
+      if (characteristic != null) {
+        try {
+          await characteristic.setNotifyValue(false);
+        } catch (e) {
+          debugPrint(
+            '[BluetoothService] Failed to stop notification for $normalizedUuid: $e',
+          );
+        }
+      }
+
+      results[target] = cancelled;
+    }
+
+    return results;
+  }
+
   void _startRssiMonitoring() {
     _stopRssiMonitoring(); // 先停止之前的监控
 
@@ -322,26 +519,28 @@ class BluetoothService {
   }
 
   /// 解析并发送二进制传感器数据
-  void _parseAndEmitBinaryData(List<int> data) {
-    try {
-      // ESP32发送的是4字节float数据
-      if (data.length == 4) {
-        // 使用工厂方法解析二进制数据
-        SensorData sensorData = SensorData.fromBinary(data);
-        _sensorDataController.add(sensorData);
-      }
-    } catch (e) {
-      // 数据解析错误，静默忽略
-    }
-  }
-
   /// 发送数据到设备
-  Future<void> sendData(String data) async {
-    if (_characteristic != null && _connectedDevice?.isConnected == true) {
-      await _characteristic!.write(utf8.encode(data));
-    } else {
-      throw Exception('设备未连接');
+  Future<void> sendData(String data, {String? characteristicUuid}) async {
+    if (_connectedDevice?.isConnected != true) {
+      throw BluetoothServiceException(BluetoothErrorCode.deviceNotConnected);
     }
+
+    fbp.BluetoothCharacteristic? targetCharacteristic;
+
+    if (characteristicUuid != null) {
+      targetCharacteristic =
+          _characteristics[_normalizeUuid(characteristicUuid)];
+    } else if (_characteristics.isNotEmpty) {
+      targetCharacteristic = _characteristics.values.first;
+    }
+
+    if (targetCharacteristic == null) {
+      throw BluetoothServiceException(
+        BluetoothErrorCode.writeCharacteristicNotFound,
+      );
+    }
+
+    await targetCharacteristic.write(utf8.encode(data));
   }
 
   /// 检查连接状态
@@ -352,10 +551,23 @@ class BluetoothService {
 
   /// 释放资源
   void dispose() {
-    _dataSubscription?.cancel();
+    for (final StreamSubscription<List<int>> subscription
+        in _notificationSubscriptions.values) {
+      subscription.cancel();
+    }
+    _notificationSubscriptions.clear();
+    _characteristics.clear();
+
+    _deviceStateSubscription?.cancel();
+    _deviceStateSubscription = null;
+    _stopRssiMonitoring();
+
     _connectedDevice?.disconnect();
+
+    _characteristicDataController.close();
     _sensorDataController.close();
     _deviceDiscoveryController.close();
     _connectionStateController.close();
+    _rssiController.close();
   }
 }

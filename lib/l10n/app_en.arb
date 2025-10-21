@@ -1,0 +1,245 @@
+{
+  "@@locale": "en",
+  "appTitle": "SmartBLESensor",
+  "homeTabDevice": "Devices",
+  "homeTabMonitoring": "Monitoring",
+  "homeTabRecords": "Records",
+  "deviceManagementTitle": "Device Management",
+  "deviceManagementCardTitle": "Connected Device",
+  "deviceStatusConnected": "Connected",
+  "deviceStatusDisconnected": "Disconnected",
+  "deviceUnknownName": "Unknown Device",
+  "deviceNonePlaceholder": "No device connected",
+  "deviceDisconnectButton": "Disconnect",
+  "deviceConnectButton": "Connect Device",
+  "deviceInfoTitle": "Device Info",
+  "deviceInfoRssiLabel": "Signal strength:",
+  "@languageMenuTitle": {
+    "description": "Language switch menu title"
+  },
+  "languageMenuTitle": "Choose language",
+  "@languageChinese": {
+    "description": "Menu item: Simplified Chinese"
+  },
+  "languageChinese": "简体中文",
+  "@languageEnglish": {
+    "description": "Menu item: English"
+  },
+  "languageEnglish": "English",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+  "commonCancel": "Cancel",
+  "commonConfirm": "Confirm",
+  "commonApply": "Apply",
+  "commonClose": "Close",
+  "commonCopy": "Copy",
+  "commonAdd": "Add",
+  "commonEdit": "Edit",
+  "monitoringTitle": "Live Monitoring",
+  "monitoringConnectRequired": "Please connect a device first",
+  "monitoringNoSavedConfigs": "No saved characteristic presets",
+  "monitoringSelectConfigDialogTitle": "Choose Characteristics",
+  "monitoringCreateConfigTitle": "Add Characteristic Preset",
+  "monitoringEditConfigTitle": "Edit Characteristic Preset",
+  "monitoringConfigCreateSuccess": "Characteristic preset added",
+  "monitoringConfigUpdateSuccess": "Preset updated",
+  "monitoringConfigDeleteSuccess": "Preset deleted",
+  "monitoringConfigSaveFailed": "Failed to save preset",
+  "monitoringConfigDeleteFailed": "Failed to delete preset",
+  "uuidConfigNameLabel": "Name",
+  "uuidConfigNameHint": "e.g. Temperature Sensor",
+  "uuidConfigNameRequired": "Enter a name",
+  "uuidConfigServiceHint": "Optional, format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "uuidConfigServiceInvalid": "Enter a valid Service UUID",
+  "uuidConfigCharacteristicLabel": "Characteristic UUID",
+  "uuidConfigCharacteristicHint": "Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "uuidConfigCharacteristicRequired": "Enter the characteristic UUID",
+  "uuidConfigCharacteristicInvalid": "Enter a valid characteristic UUID",
+  "uuidConfigDescriptionLabel": "Notes",
+  "uuidConfigDescriptionHint": "Optional, describe how this characteristic is used",
+  "monitoringConfigNotProvided": "Preset does not include a valid characteristic UUID",
+  "monitoringDialogCreateButton": "Add Preset",
+  "monitoringStatusTitle": "Connection Status",
+  "monitoringStatusNoSelection": "No characteristics selected",
+  "monitoringStatusSelectionCount": "{count} characteristics selected",
+  "monitoringStatusActive": "Active ({activeCount}/{totalCount})",
+  "monitoringStatusIdle": "Inactive",
+  "monitoringButtonStart": "Start Monitoring",
+  "monitoringButtonStop": "Stop Monitoring",
+  "monitoringButtonClear": "Clear Data",
+  "monitoringSnackStartSuccess": "Monitoring started",
+  "monitoringSnackStartFailure": "Unable to start monitoring",
+  "monitoringSnackStopSuccess": "Monitoring stopped",
+  "monitoringSnackStopFailure": "Unable to stop monitoring",
+  "monitoringSnackStoppedForUpdate": "Monitoring stopped, please start again",
+  "monitoringSnackSelectConfig": "Select characteristics first",
+  "monitoringSnackNoActive": "No active characteristics",
+  "monitoringSnackClearSuccess": "Selected data cleared",
+  "monitoringSnackCannotEnable": "Unable to enable notifications",
+  "monitoringCurrentDataTitle": "Current Data",
+  "monitoringChipActive": "Active",
+  "monitoringChipInactive": "Inactive",
+  "monitoringLastUpdated": "Updated at: {time}",
+  "monitoringNoSensorValues": "No sensor readings",
+  "monitoringEmptyCurrentTitle": "Live Data",
+  "monitoringEmptyCurrentMessage": "No characteristics selected",
+  "monitoringChartTitle": "Live Trends",
+  "monitoringChartEmptyMessage": "No history available yet",
+  "monitoringTooltip": "{name}\nValue: {value}\nTime: {time}",
+  "monitoringServiceLabel": "Service: {uuid}",
+  "monitoringCharacteristicLabel": "Characteristic: {uuid}",
+  "dialogConfirmDeleteTitle": "Confirm Deletion",
+  "monitoringConfirmDeleteConfig": "Delete preset \"{name}\"?",
+  "@recordsTabTitle": {
+    "description": "Records tab title"
+  },
+  "recordsTabTitle": "Data Records",
+  "@recordsExportCsvTooltip": {
+    "description": "Records tab export button tooltip"
+  },
+  "recordsExportCsvTooltip": "Export CSV",
+  "@recordsStatusTitle": {
+    "description": "Recording status card title"
+  },
+  "recordsStatusTitle": "Recording Status",
+  "@recordsStatusRecording": {
+    "description": "Recording badge text"
+  },
+  "recordsStatusRecording": "Recording",
+  "@recordsStatusStopped": {
+    "description": "Stopped badge text"
+  },
+  "recordsStatusStopped": "Stopped",
+  "@recordsMetricTotalRecords": {
+    "description": "Metric label: total records"
+  },
+  "recordsMetricTotalRecords": "Total records",
+  "@recordsMetricFeatureCount": {
+    "description": "Metric label: tracked characteristics"
+  },
+  "recordsMetricFeatureCount": "Tracked characteristics",
+  "@recordsMetricLastTime": {
+    "description": "Metric label: last record time"
+  },
+  "recordsMetricLastTime": "Last record time",
+  "@recordsCurrentFeaturesTitle": {
+    "description": "Current characteristics header"
+  },
+  "recordsCurrentFeaturesTitle": "Current tracked characteristics",
+  "@recordsEmptyMessage": {
+    "description": "Empty state message"
+  },
+  "recordsEmptyMessage": "No records yet\nTap the play button in the top right to start recording",
+  "@recordsNoSensorValues": {
+    "description": "No values placeholder"
+  },
+  "recordsNoSensorValues": "No sensor values",
+  "@recordsSnackbarSelectFeatures": {
+    "description": "Prompt to select features"
+  },
+  "recordsSnackbarSelectFeatures": "Select the characteristics to record first",
+  "@recordsSnackbarRecordingStarted": {
+    "description": "Recording started message"
+  },
+  "recordsSnackbarRecordingStarted": "Recording started",
+  "@recordsSnackbarRecordingStopped": {
+    "description": "Recording stopped message"
+  },
+  "recordsSnackbarRecordingStopped": "Recording stopped",
+  "@recordsSnackbarRecordingError": {
+    "description": "Recording error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsSnackbarRecordingError": "Error while recording data: {error}",
+  "@recordsSnackbarNoData": {
+    "description": "No data to export message"
+  },
+  "recordsSnackbarNoData": "No data available to export",
+  "@recordsExportDialogTitle": {
+    "description": "Export data dialog title"
+  },
+  "recordsExportDialogTitle": "Export data",
+  "@recordsExportRecordCount": {
+    "description": "Export record count line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsExportRecordCount": "Export {count} records",
+  "@recordsExportFeatureCount": {
+    "description": "Export feature count line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsExportFeatureCount": "{count} characteristics recorded",
+  "@recordsExportChooseFormat": {
+    "description": "Prompt to choose export format"
+  },
+  "recordsExportChooseFormat": "Choose an export option:",
+  "@recordsExportSaveFile": {
+    "description": "Save to file action"
+  },
+  "recordsExportSaveFile": "Save to file",
+  "@recordsExportPreview": {
+    "description": "Preview/Copy action"
+  },
+  "recordsExportPreview": "Preview/Copy",
+  "@recordsExporting": {
+    "description": "Export progress message"
+  },
+  "recordsExporting": "Exporting...",
+  "@recordsExportSuccessTitle": {
+    "description": "Export success title"
+  },
+  "recordsExportSuccessTitle": "Export complete",
+  "@recordsExportSuccessPathLabel": {
+    "description": "Export success path label"
+  },
+  "recordsExportSuccessPathLabel": "File saved to:",
+  "@recordsExportSuccessSizeLabel": {
+    "description": "Export success size label"
+  },
+  "recordsExportSuccessSizeLabel": "File size:",
+  "@recordsExportSuccessRecordsLabel": {
+    "description": "Export success record count label"
+  },
+  "recordsExportSuccessRecordsLabel": "Record count:",
+  "@recordsExportSuccessFeaturesLabel": {
+    "description": "Export success feature count label"
+  },
+  "recordsExportSuccessFeaturesLabel": "Characteristic count:",
+  "@recordsExportFailed": {
+    "description": "Export failed message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsExportFailed": "Export failed: {error}",
+  "@recordsCsvPreviewTitle": {
+    "description": "CSV preview title"
+  },
+  "recordsCsvPreviewTitle": "CSV Preview",
+  "@recordsCsvCopied": {
+    "description": "CSV copied message"
+  },
+  "recordsCsvCopied": "CSV data copied to clipboard",
+  "@recordsCsvHeader": {
+    "description": "CSV header"
+  },
+  "recordsCsvHeader": "Index,Time",
+  "@recordsConfirmDeleteAllMessage": {
+    "description": "Confirm delete all records message"
+  },
+  "recordsConfirmDeleteAllMessage": "Delete all recorded data? This action cannot be undone."
+}

@@ -6,6 +6,7 @@ import '../models/uuid_config.dart';
 class UuidConfigService {
   static const String _configsKey = 'uuid_configs';
   static const String _selectedConfigKey = 'selected_uuid_config';
+  static const String _selectedConfigIdsKey = 'selected_uuid_config_ids';
 
   /// 获取所有保存的UUID配置
   Future<List<UuidConfig>> getAllConfigs() async {
@@ -58,11 +59,21 @@ class UuidConfigService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final configs = await getAllConfigs();
-      
+
       configs.removeWhere((config) => config.id == configId);
-      
-      final configsJson = configs.map((config) => jsonEncode(config.toJson())).toList();
-      return await prefs.setStringList(_configsKey, configsJson);
+
+      final configsJson =
+          configs.map((config) => jsonEncode(config.toJson())).toList();
+      final result = await prefs.setStringList(_configsKey, configsJson);
+
+      final List<UuidConfig> selectedConfigs = await getSelectedConfigs();
+      final List<String> selectedIds =
+          selectedConfigs.map((config) => config.id).toList();
+      if (selectedIds.remove(configId)) {
+        await setSelectedConfigs(selectedIds);
+      }
+
+      return result;
     } catch (e) {
       return false;
     }
@@ -84,41 +95,96 @@ class UuidConfigService {
     }
   }
 
-  /// 获取当前选中的UUID配置
-  Future<UuidConfig?> getSelectedConfig() async {
+  Future<List<String>> getSelectedConfigIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_selectedConfigIdsKey) ?? [];
+  }
+
+  /// 获取当前选中的UUID配置列表
+  Future<List<UuidConfig>> getSelectedConfigs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final configId = prefs.getString(_selectedConfigKey);
-      
-      if (configId != null) {
-        final configs = await getAllConfigs();
-        return configs.firstWhere(
-          (config) => config.id == configId,
-          orElse: () => throw Exception('Config not found'),
-        );
+      final List<String> configIds = await getSelectedConfigIds();
+      final List<UuidConfig> allConfigs = await getAllConfigs();
+
+      if (configIds.isNotEmpty) {
+        final Map<String, UuidConfig> configMap = {
+          for (final config in allConfigs) config.id: config,
+        };
+        return configIds
+            .map((id) => configMap[id])
+            .whereType<UuidConfig>()
+            .toList();
       }
-      return null;
+
+      // 兼容旧版本单选存储
+      final String? legacyId = prefs.getString(_selectedConfigKey);
+      if (legacyId != null) {
+        UuidConfig? legacyConfig;
+        for (final config in allConfigs) {
+          if (config.id == legacyId) {
+            legacyConfig = config;
+            break;
+          }
+        }
+
+        if (legacyConfig != null) {
+          await setSelectedConfigs([legacyConfig.id]);
+          return [legacyConfig];
+        } else {
+          await prefs.remove(_selectedConfigKey);
+        }
+      }
+
+      return [];
     } catch (e) {
-      return null;
+      return [];
     }
+  }
+
+  /// 设置选中的UUID配置列表
+  Future<bool> setSelectedConfigs(List<String> configIds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_selectedConfigKey);
+
+      if (configIds.isEmpty) {
+        await prefs.remove(_selectedConfigIdsKey);
+        return true;
+      }
+
+      final result =
+          await prefs.setStringList(_selectedConfigIdsKey, configIds);
+
+      // 更新最后使用时间
+      for (final String id in configIds) {
+        await updateLastUsed(id);
+      }
+
+      return result;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 获取当前选中的UUID配置（兼容旧逻辑，仅返回第一个）
+  Future<UuidConfig?> getSelectedConfig() async {
+    final configs = await getSelectedConfigs();
+    if (configs.isEmpty) return null;
+    return configs.first;
   }
 
   /// 设置当前选中的UUID配置
   Future<bool> setSelectedConfig(String configId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await updateLastUsed(configId);
-      return await prefs.setString(_selectedConfigKey, configId);
-    } catch (e) {
-      return false;
-    }
+    return setSelectedConfigs([configId]);
   }
 
   /// 清除选中的配置
   Future<bool> clearSelectedConfig() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return await prefs.remove(_selectedConfigKey);
+      await prefs.remove(_selectedConfigKey);
+      return await prefs.remove(_selectedConfigIdsKey);
     } catch (e) {
       return false;
     }

@@ -1,0 +1,520 @@
+{
+  "@@locale": "zh",
+  "appTitle": "SmartBLESensor",
+  "@homeTabDevice": {
+    "description": "底部导航中的设备标签"
+  },
+  "homeTabDevice": "设备",
+  "@homeTabMonitoring": {
+    "description": "底部导航中的监控标签"
+  },
+  "homeTabMonitoring": "监控",
+  "@homeTabRecords": {
+    "description": "底部导航中的记录标签"
+  },
+  "homeTabRecords": "记录",
+  "@deviceManagementTitle": {
+    "description": "设备管理页标题"
+  },
+  "deviceManagementTitle": "设备管理",
+  "@deviceManagementCardTitle": {
+    "description": "设备管理页中当前设备卡片标题"
+  },
+  "deviceManagementCardTitle": "当前连接设备",
+  "@deviceStatusConnected": {
+    "description": "设备状态：已连接"
+  },
+  "deviceStatusConnected": "已连接",
+  "@deviceStatusDisconnected": {
+    "description": "设备状态：未连接"
+  },
+  "deviceStatusDisconnected": "未连接",
+  "@deviceUnknownName": {
+    "description": "未能识别设备名称时的占位文案"
+  },
+  "deviceUnknownName": "未知设备",
+  "@deviceNonePlaceholder": {
+    "description": "尚未连接设备时的占位提示"
+  },
+  "deviceNonePlaceholder": "暂无连接设备",
+  "@deviceDisconnectButton": {
+    "description": "断开连接按钮文本"
+  },
+  "deviceDisconnectButton": "断开连接",
+  "@deviceConnectButton": {
+    "description": "连接设备按钮文本"
+  },
+  "deviceConnectButton": "连接设备",
+  "@deviceInfoTitle": {
+    "description": "设备信息卡片标题"
+  },
+  "deviceInfoTitle": "设备信息",
+  "@deviceInfoRssiLabel": {
+    "description": "设备信息卡片中 RSSI 标签"
+  },
+  "deviceInfoRssiLabel": "信号强度:",
+  "@languageMenuTitle": {
+    "description": "语言切换菜单标题"
+  },
+  "languageMenuTitle": "选择语言",
+  "@languageChinese": {
+    "description": "菜单项：简体中文"
+  },
+  "languageChinese": "简体中文",
+  "@languageEnglish": {
+    "description": "菜单项：英语"
+  },
+  "languageEnglish": "English",
+  "@commonSave": {
+    "description": "通用操作：保存"
+  },
+  "commonSave": "保存",
+  "@commonDelete": {
+    "description": "通用操作：删除"
+  },
+  "commonDelete": "删除",
+  "@commonCancel": {
+    "description": "通用操作：取消"
+  },
+  "commonCancel": "取消",
+  "@commonConfirm": {
+    "description": "通用操作：确定"
+  },
+  "commonConfirm": "确定",
+  "@commonApply": {
+    "description": "通用操作：应用"
+  },
+  "commonApply": "应用",
+  "@commonClose": {
+    "description": "通用操作：关闭"
+  },
+  "commonClose": "关闭",
+  "@commonCopy": {
+    "description": "通用操作：复制"
+  },
+  "commonCopy": "复制",
+  "@commonAdd": {
+    "description": "通用操作：新增"
+  },
+  "commonAdd": "新增",
+  "@commonEdit": {
+    "description": "通用操作：编辑"
+  },
+  "commonEdit": "编辑",
+  "@monitoringTitle": {
+    "description": "数据监控页标题"
+  },
+  "monitoringTitle": "实时监控",
+  "@monitoringConnectRequired": {
+    "description": "提示用户需要先连接设备"
+  },
+  "monitoringConnectRequired": "请先连接设备",
+  "@monitoringNoSavedConfigs": {
+    "description": "提示尚无可用的特征配置"
+  },
+  "monitoringNoSavedConfigs": "暂无已保存的特征配置",
+  "@monitoringSelectConfigDialogTitle": {
+    "description": "选择特征配置对话框标题"
+  },
+  "monitoringSelectConfigDialogTitle": "选择特征配置",
+  "@monitoringCreateConfigTitle": {
+    "description": "创建特征配置对话框标题"
+  },
+  "monitoringCreateConfigTitle": "新增特征配置",
+  "@monitoringEditConfigTitle": {
+    "description": "编辑特征配置对话框标题"
+  },
+  "monitoringEditConfigTitle": "编辑特征配置",
+  "@monitoringConfigCreateSuccess": {
+    "description": "新增特征配置成功提示"
+  },
+  "monitoringConfigCreateSuccess": "已添加新的特征配置",
+  "@monitoringConfigUpdateSuccess": {
+    "description": "更新特征配置成功提示"
+  },
+  "monitoringConfigUpdateSuccess": "配置已更新",
+  "@monitoringConfigDeleteSuccess": {
+    "description": "删除特征配置成功提示"
+  },
+  "monitoringConfigDeleteSuccess": "配置已删除",
+  "@monitoringConfigSaveFailed": {
+    "description": "保存特征配置失败提示"
+  },
+  "monitoringConfigSaveFailed": "保存配置失败",
+  "@monitoringConfigDeleteFailed": {
+    "description": "删除特征配置失败提示"
+  },
+  "monitoringConfigDeleteFailed": "删除配置失败",
+  "@uuidConfigNameLabel": {
+    "description": "特征配置表单-名称标签"
+  },
+  "uuidConfigNameLabel": "名称",
+  "@uuidConfigNameHint": {
+    "description": "特征配置表单-名称示例"
+  },
+  "uuidConfigNameHint": "例如：温度传感器",
+  "@uuidConfigNameRequired": {
+    "description": "特征配置表单-名称校验提示"
+  },
+  "uuidConfigNameRequired": "请输入名称",
+  "@uuidConfigServiceHint": {
+    "description": "特征配置表单-Service UUID 提示"
+  },
+  "uuidConfigServiceHint": "可选，格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "@uuidConfigServiceInvalid": {
+    "description": "特征配置表单-Service UUID 校验提示"
+  },
+  "uuidConfigServiceInvalid": "请输入有效的 Service UUID",
+  "@uuidConfigCharacteristicLabel": {
+    "description": "特征配置表单-特征 UUID 标签"
+  },
+  "uuidConfigCharacteristicLabel": "Characteristic UUID",
+  "@uuidConfigCharacteristicHint": {
+    "description": "特征配置表单-特征 UUID 提示"
+  },
+  "uuidConfigCharacteristicHint": "格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "@uuidConfigCharacteristicRequired": {
+    "description": "特征配置表单-特征 UUID 必填提示"
+  },
+  "uuidConfigCharacteristicRequired": "请输入特征 UUID",
+  "@uuidConfigCharacteristicInvalid": {
+    "description": "特征配置表单-特征 UUID 校验提示"
+  },
+  "uuidConfigCharacteristicInvalid": "请输入有效的特征 UUID",
+  "@uuidConfigDescriptionLabel": {
+    "description": "特征配置表单-备注标签"
+  },
+  "uuidConfigDescriptionLabel": "备注",
+  "@uuidConfigDescriptionHint": {
+    "description": "特征配置表单-备注提示"
+  },
+  "uuidConfigDescriptionHint": "可选，描述该特征用途",
+  "@monitoringConfigNotProvided": {
+    "description": "特征配置缺少有效特征 UUID 提示"
+  },
+  "monitoringConfigNotProvided": "配置未提供有效的特征 UUID",
+  "@monitoringDialogCreateButton": {
+    "description": "选择特征配置对话框-新增按钮文本"
+  },
+  "monitoringDialogCreateButton": "新增配置",
+  "@monitoringStatusTitle": {
+    "description": "监控状态卡片标题"
+  },
+  "monitoringStatusTitle": "连接状态",
+  "@monitoringStatusNoSelection": {
+    "description": "监控状态卡片-无选择提示"
+  },
+  "monitoringStatusNoSelection": "未选择特征",
+  "@monitoringStatusSelectionCount": {
+    "description": "监控状态卡片-选择数量提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "monitoringStatusSelectionCount": "已选 {count} 个特征",
+  "@monitoringStatusActive": {
+    "description": "监控状态卡片-监听中提示",
+    "placeholders": {
+      "activeCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "monitoringStatusActive": "监听中 ({activeCount}/{totalCount})",
+  "@monitoringStatusIdle": {
+    "description": "监控状态卡片-未监听提示"
+  },
+  "monitoringStatusIdle": "未监听",
+  "@monitoringButtonStart": {
+    "description": "开始监听按钮"
+  },
+  "monitoringButtonStart": "开始监听",
+  "@monitoringButtonStop": {
+    "description": "停止监听按钮"
+  },
+  "monitoringButtonStop": "停止监听",
+  "@monitoringButtonClear": {
+    "description": "清空数据按钮"
+  },
+  "monitoringButtonClear": "清空数据",
+  "@monitoringSnackStartSuccess": {
+    "description": "开启监听成功提示"
+  },
+  "monitoringSnackStartSuccess": "监听已启动",
+  "@monitoringSnackStartFailure": {
+    "description": "开启监听失败提示"
+  },
+  "monitoringSnackStartFailure": "未能成功开启监听",
+  "@monitoringSnackStopSuccess": {
+    "description": "停止监听成功提示"
+  },
+  "monitoringSnackStopSuccess": "监听已停止",
+  "@monitoringSnackStopFailure": {
+    "description": "停止监听失败提示"
+  },
+  "monitoringSnackStopFailure": "未能停止监听",
+  "@monitoringSnackStoppedForUpdate": {
+    "description": "重新选择配置后提示监听已停止"
+  },
+  "monitoringSnackStoppedForUpdate": "监听已停止，请重新启动",
+  "@monitoringSnackSelectConfig": {
+    "description": "提示需要先选择特征配置"
+  },
+  "monitoringSnackSelectConfig": "请先选择特征配置",
+  "@monitoringSnackNoActive": {
+    "description": "没有正在监听的特征提示"
+  },
+  "monitoringSnackNoActive": "没有正在监听的特征",
+  "@monitoringSnackClearSuccess": {
+    "description": "清空监控数据成功提示"
+  },
+  "monitoringSnackClearSuccess": "已清除所选特征的数据",
+  "@monitoringSnackCannotEnable": {
+    "description": "无法启用数据通知提示"
+  },
+  "monitoringSnackCannotEnable": "无法启用数据通知",
+  "@monitoringCurrentDataTitle": {
+    "description": "当前数据卡片标题"
+  },
+  "monitoringCurrentDataTitle": "当前特征数据",
+  "@monitoringChipActive": {
+    "description": "特征卡片-正在监听标签"
+  },
+  "monitoringChipActive": "监听中",
+  "@monitoringChipInactive": {
+    "description": "特征卡片-未监听标签"
+  },
+  "monitoringChipInactive": "未监听",
+  "@monitoringLastUpdated": {
+    "description": "特征卡片-最后更新时间标签",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringLastUpdated": "更新时间：{time}",
+  "@monitoringNoSensorValues": {
+    "description": "特征卡片-无数据提示"
+  },
+  "monitoringNoSensorValues": "无传感器数值",
+  "@monitoringEmptyCurrentTitle": {
+    "description": "无选择时当前数据卡片标题"
+  },
+  "monitoringEmptyCurrentTitle": "实时数据",
+  "@monitoringEmptyCurrentMessage": {
+    "description": "无选择时当前数据卡片提示"
+  },
+  "monitoringEmptyCurrentMessage": "未选择特征",
+  "@monitoringChartTitle": {
+    "description": "监控折线图标题"
+  },
+  "monitoringChartTitle": "实时折线图",
+  "@monitoringChartEmptyMessage": {
+    "description": "监控折线图无数据提示"
+  },
+  "monitoringChartEmptyMessage": "暂无历史数据可显示",
+  "@monitoringTooltip": {
+    "description": "监控折线图悬浮提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringTooltip": "{name}\n数值：{value}\n时间：{time}",
+  "@monitoringServiceLabel": {
+    "description": "特征卡片 Service UUID 标签",
+    "placeholders": {
+      "uuid": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringServiceLabel": "Service: {uuid}",
+  "@monitoringCharacteristicLabel": {
+    "description": "特征卡片 Characteristic UUID 标签",
+    "placeholders": {
+      "uuid": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringCharacteristicLabel": "Characteristic: {uuid}",
+  "@dialogConfirmDeleteTitle": {
+    "description": "删除确认对话框标题"
+  },
+  "dialogConfirmDeleteTitle": "确认删除",
+  "@monitoringConfirmDeleteConfig": {
+    "description": "删除特征配置确认内容",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringConfirmDeleteConfig": "确认要删除配置「{name}」吗？",
+  "@recordsTabTitle": {
+    "description": "记录页签标题"
+  },
+  "recordsTabTitle": "数据记录",
+  "@recordsExportCsvTooltip": {
+    "description": "记录页导出按钮提示"
+  },
+  "recordsExportCsvTooltip": "导出CSV",
+  "@recordsStatusTitle": {
+    "description": "记录状态卡片标题"
+  },
+  "recordsStatusTitle": "记录状态",
+  "@recordsStatusRecording": {
+    "description": "记录状态徽标：记录中"
+  },
+  "recordsStatusRecording": "记录中",
+  "@recordsStatusStopped": {
+    "description": "记录状态徽标：已停止"
+  },
+  "recordsStatusStopped": "已停止",
+  "@recordsMetricTotalRecords": {
+    "description": "指标：总记录数"
+  },
+  "recordsMetricTotalRecords": "总记录数",
+  "@recordsMetricFeatureCount": {
+    "description": "指标：采集特征数量"
+  },
+  "recordsMetricFeatureCount": "采集特征数",
+  "@recordsMetricLastTime": {
+    "description": "指标：最后记录时间"
+  },
+  "recordsMetricLastTime": "最后记录时间",
+  "@recordsCurrentFeaturesTitle": {
+    "description": "当前记录特征标题"
+  },
+  "recordsCurrentFeaturesTitle": "当前记录特征",
+  "@recordsEmptyMessage": {
+    "description": "记录列表为空时的提示"
+  },
+  "recordsEmptyMessage": "暂无记录数据\n点击右上角播放按钮开始记录",
+  "@recordsNoSensorValues": {
+    "description": "记录项无数据提示"
+  },
+  "recordsNoSensorValues": "无传感器数值",
+  "@recordsSnackbarSelectFeatures": {
+    "description": "提示选择记录特征"
+  },
+  "recordsSnackbarSelectFeatures": "请先选择需要记录的特征",
+  "@recordsSnackbarRecordingStarted": {
+    "description": "开始记录提示"
+  },
+  "recordsSnackbarRecordingStarted": "开始记录数据",
+  "@recordsSnackbarRecordingStopped": {
+    "description": "停止记录提示"
+  },
+  "recordsSnackbarRecordingStopped": "已停止记录",
+  "@recordsSnackbarRecordingError": {
+    "description": "记录失败提示",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsSnackbarRecordingError": "记录数据时发生错误: {error}",
+  "@recordsSnackbarNoData": {
+    "description": "无数据可导出提示"
+  },
+  "recordsSnackbarNoData": "无数据可导出",
+  "@recordsExportDialogTitle": {
+    "description": "导出数据对话框标题"
+  },
+  "recordsExportDialogTitle": "导出数据",
+  "@recordsExportRecordCount": {
+    "description": "导出记录数量提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsExportRecordCount": "导出 {count} 条记录",
+  "@recordsExportFeatureCount": {
+    "description": "导出特征数量提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsExportFeatureCount": "采集特征数 {count}",
+  "@recordsExportChooseFormat": {
+    "description": "导出方式提示"
+  },
+  "recordsExportChooseFormat": "请选择导出方式：",
+  "@recordsExportSaveFile": {
+    "description": "导出保存到文件按钮"
+  },
+  "recordsExportSaveFile": "保存到文件",
+  "@recordsExportPreview": {
+    "description": "导出预览按钮"
+  },
+  "recordsExportPreview": "预览/复制",
+  "@recordsExporting": {
+    "description": "导出进行中提示"
+  },
+  "recordsExporting": "正在导出...",
+  "@recordsExportSuccessTitle": {
+    "description": "导出成功标题"
+  },
+  "recordsExportSuccessTitle": "导出成功",
+  "@recordsExportSuccessPathLabel": {
+    "description": "导出成功文件路径标签"
+  },
+  "recordsExportSuccessPathLabel": "文件已保存到:",
+  "@recordsExportSuccessSizeLabel": {
+    "description": "导出成功文件大小标签"
+  },
+  "recordsExportSuccessSizeLabel": "文件大小:",
+  "@recordsExportSuccessRecordsLabel": {
+    "description": "导出成功记录数量标签"
+  },
+  "recordsExportSuccessRecordsLabel": "记录条数:",
+  "@recordsExportSuccessFeaturesLabel": {
+    "description": "导出成功特征数量标签"
+  },
+  "recordsExportSuccessFeaturesLabel": "采集特征数:",
+  "@recordsExportFailed": {
+    "description": "导出失败提示",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsExportFailed": "导出失败: {error}",
+  "@recordsCsvPreviewTitle": {
+    "description": "CSV预览标题"
+  },
+  "recordsCsvPreviewTitle": "CSV数据预览",
+  "@recordsCsvCopied": {
+    "description": "CSV复制成功提示"
+  },
+  "recordsCsvCopied": "CSV数据已复制到剪贴板",
+  "@recordsCsvHeader": {
+    "description": "CSV 文件表头"
+  },
+  "recordsCsvHeader": "序号,时间",
+  "@recordsConfirmDeleteAllMessage": {
+    "description": "清空记录确认消息"
+  },
+  "recordsConfirmDeleteAllMessage": "确认要删除所有记录数据吗？此操作不可恢复"
+}

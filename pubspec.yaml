@@ -31,12 +31,15 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+
   # 蓝牙相关依赖
   flutter_blue_plus: ^1.32.12
   permission_handler: ^12.0.0
 
   # 图表可视化
-  fl_chart: ^1.0.0
+  fl_chart: 1.0.0
 
   # 状态管理
   provider: ^6.1.2
@@ -76,6 +79,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

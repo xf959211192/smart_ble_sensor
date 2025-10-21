@@ -11,6 +11,13 @@ class BluetoothProvider extends ChangeNotifier {
   StreamSubscription<DeviceInfo>? _deviceDiscoverySubscription;
   StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
   StreamSubscription<int>? _rssiSubscription;
+  StreamSubscription<CharacteristicDataEvent>? _characteristicDataSubscription;
+
+  final Map<String, SensorData> _latestSensorDataByUuid = {};
+  final Map<String, List<SensorData>> _sensorDataHistoryByUuid = {};
+  final Map<String, bool> _activeNotifications = {};
+
+  static const int _historyLimit = 200;
 
   BluetoothState get state => _state;
 
@@ -22,6 +29,16 @@ class BluetoothProvider extends ChangeNotifier {
   DeviceInfo? get connectedDevice => _state.connectedDevice;
   List<DeviceInfo> get discoveredDevices => _state.discoveredDevices;
   String? get errorMessage => _state.errorMessage;
+  Map<String, SensorData> get latestSensorDataByUuid =>
+      Map.unmodifiable(_latestSensorDataByUuid);
+  Map<String, bool> get notificationStatus =>
+      Map.unmodifiable(_activeNotifications);
+  List<SensorData> getSensorDataHistory(String uuid) =>
+      List.unmodifiable(_sensorDataHistoryByUuid[uuid] ?? const []);
+  Set<String> get activeNotificationUuids => _activeNotifications.entries
+      .where((entry) => entry.value)
+      .map((entry) => entry.key)
+      .toSet();
 
   BluetoothProvider() {
     _initializeBluetoothService();
@@ -45,6 +62,9 @@ class BluetoothProvider extends ChangeNotifier {
     _rssiSubscription = _bluetoothService.rssiStream.listen((rssi) {
       _updateRssi(rssi);
     });
+
+    _characteristicDataSubscription = _bluetoothService.characteristicDataStream
+        .listen(_handleCharacteristicData);
 
     // 检查初始蓝牙状态
     _checkBluetoothStatus();
@@ -141,6 +161,7 @@ class BluetoothProvider extends ChangeNotifier {
           connectionState: BluetoothConnectionState.connected,
           connectedDevice: connectedDevice,
         );
+        _clearNotificationState();
       } else {
         _state = _state.copyWith(
           connectionState: BluetoothConnectionState.error,
@@ -157,20 +178,46 @@ class BluetoothProvider extends ChangeNotifier {
     }
   }
 
-  /// 设置数据通知 (匹配UUID并启动notify)
+  /// 设置数据通知 (支持多个UUID并行订阅)
   Future<bool> setupDataNotification({
     String? serviceUuid,
     String? characteristicUuid,
+    List<String>? characteristicUuids,
   }) async {
     if (!_state.isConnected) return false;
 
+    final List<String>? requestedUuids =
+        characteristicUuids ??
+        (characteristicUuid != null ? <String>[characteristicUuid] : null);
+    if (requestedUuids == null || requestedUuids.isEmpty) {
+      _setError('未提供有效的特征UUID');
+      return false;
+    }
+
     try {
-      final success = await _bluetoothService.setupDataNotification(
+      final results = await _bluetoothService.setupDataNotification(
         serviceUuid: serviceUuid,
-        characteristicUuid: characteristicUuid,
+        characteristicUuids: requestedUuids,
       );
 
-      return success;
+      bool anySuccess = false;
+      for (final MapEntry<String, bool> entry in results.entries) {
+        final String normalizedUuid = _normalizeUuid(entry.key);
+        _activeNotifications[normalizedUuid] = entry.value;
+        if (entry.value) {
+          _sensorDataHistoryByUuid.putIfAbsent(
+            normalizedUuid,
+            () => <SensorData>[],
+          );
+          anySuccess = true;
+        } else {
+          _latestSensorDataByUuid.remove(normalizedUuid);
+          _sensorDataHistoryByUuid.remove(normalizedUuid);
+        }
+      }
+
+      notifyListeners();
+      return anySuccess;
     } catch (e) {
       _state = _state.copyWith(errorMessage: '设置数据通知失败: $e');
       notifyListeners();
@@ -179,12 +226,44 @@ class BluetoothProvider extends ChangeNotifier {
   }
 
   /// 停止数据通知 (保持连接)
-  Future<bool> stopDataNotification() async {
+  Future<bool> stopDataNotification({
+    List<String>? characteristicUuids,
+    String? characteristicUuid,
+  }) async {
     if (!_state.isConnected) return false;
 
+    final List<String> targets =
+        characteristicUuids ??
+        (characteristicUuid != null ? <String>[characteristicUuid] : null) ??
+        _activeNotifications.entries
+            .where((entry) => entry.value)
+            .map((entry) => entry.key)
+            .toList();
+
+    if (targets.isEmpty) {
+      return false;
+    }
+
     try {
-      final success = await _bluetoothService.stopDataNotification();
-      return success;
+      final results = await _bluetoothService.stopDataNotification(
+        characteristicUuids: targets,
+      );
+
+      bool anyStopped = false;
+      for (final MapEntry<String, bool> entry in results.entries) {
+        final String normalizedUuid = _normalizeUuid(entry.key);
+        if (entry.value) {
+          anyStopped = true;
+          _activeNotifications.remove(normalizedUuid);
+          _latestSensorDataByUuid.remove(normalizedUuid);
+          _sensorDataHistoryByUuid.remove(normalizedUuid);
+        }
+      }
+
+      if (anyStopped) {
+        notifyListeners();
+      }
+      return anyStopped;
     } catch (e) {
       _state = _state.copyWith(errorMessage: '停止数据通知失败: $e');
       notifyListeners();
@@ -204,6 +283,7 @@ class BluetoothProvider extends ChangeNotifier {
         clearConnectedDevice: true,
         clearError: true,
       );
+      _clearNotificationState();
       notifyListeners();
     } catch (e) {
       _setError('断开连接失败: $e');
@@ -211,18 +291,71 @@ class BluetoothProvider extends ChangeNotifier {
   }
 
   /// 发送数据到设备
-  Future<void> sendData(String data) async {
+  Future<void> sendData(String data, {String? characteristicUuid}) async {
     if (!_state.isConnected) {
       _setError('设备未连接');
       return;
     }
 
     try {
-      await _bluetoothService.sendData(data);
+      await _bluetoothService.sendData(
+        data,
+        characteristicUuid: characteristicUuid,
+      );
     } catch (e) {
       _setError('发送数据失败: $e');
     }
   }
+
+  /// 添加发现的设备
+  void _handleCharacteristicData(CharacteristicDataEvent event) {
+    final String normalizedUuid = _normalizeUuid(event.characteristicUuid);
+
+    _activeNotifications[normalizedUuid] = true;
+    _latestSensorDataByUuid[normalizedUuid] = event.data;
+
+    final List<SensorData> history = _sensorDataHistoryByUuid.putIfAbsent(
+      normalizedUuid,
+      () => <SensorData>[],
+    );
+    history.add(event.data);
+    if (history.length > _historyLimit) {
+      history.removeAt(0);
+    }
+
+    notifyListeners();
+  }
+
+  void _clearNotificationState() {
+    _activeNotifications.clear();
+    _latestSensorDataByUuid.clear();
+    _sensorDataHistoryByUuid.clear();
+  }
+
+  void clearSensorHistory({List<String>? characteristicUuids}) {
+    final List<String> targets = (characteristicUuids ??
+            _sensorDataHistoryByUuid.keys.toList())
+        .map(_normalizeUuid)
+        .toList();
+
+    bool changed = false;
+    for (final String uuid in targets) {
+      if (_sensorDataHistoryByUuid.containsKey(uuid)) {
+        _sensorDataHistoryByUuid[uuid]?.clear();
+        changed = true;
+      }
+      if (_latestSensorDataByUuid.containsKey(uuid)) {
+        _latestSensorDataByUuid.remove(uuid);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  String _normalizeUuid(String uuid) => uuid.trim().toLowerCase();
 
   /// 添加发现的设备
   void _addDiscoveredDevice(DeviceInfo device) {
@@ -238,6 +371,8 @@ class BluetoothProvider extends ChangeNotifier {
       devices.add(device); // 添加新设备
     }
 
+    _bluetoothService.sortDiscoveredDevices(devices);
+
     _state = _state.copyWith(discoveredDevices: devices);
     notifyListeners();
   }
@@ -249,6 +384,7 @@ class BluetoothProvider extends ChangeNotifier {
     // 如果连接断开，清除连接的设备和RSSI
     if (connectionState == BluetoothConnectionState.disconnected) {
       _state = _state.copyWith(clearConnectedDevice: true, clearRssi: true);
+      _clearNotificationState();
     }
 
     notifyListeners();
@@ -277,6 +413,7 @@ class BluetoothProvider extends ChangeNotifier {
     _deviceDiscoverySubscription?.cancel();
     _connectionStateSubscription?.cancel();
     _rssiSubscription?.cancel();
+    _characteristicDataSubscription?.cancel();
     _bluetoothService.dispose();
     super.dispose();
   }

@@ -325,21 +325,10 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
       );
     }
 
-    // 按信号强度排序（RSSI值越大信号越强）
-    final sortedDevices = List<DeviceInfo>.from(devices);
-    sortedDevices.sort((a, b) {
-      // RSSI为null的设备排在最后
-      if (a.rssi == null && b.rssi == null) return 0;
-      if (a.rssi == null) return 1;
-      if (b.rssi == null) return -1;
-      // RSSI值越大（越接近0）信号越强，排在前面
-      return b.rssi!.compareTo(a.rssi!);
-    });
-
     return ListView.builder(
-      itemCount: sortedDevices.length,
+      itemCount: devices.length,
       itemBuilder: (context, index) {
-        final device = sortedDevices[index];
+        final device = devices[index];
         return DeviceListItem(
           device: device,
           onTap: () => _connectToDevice(device),
