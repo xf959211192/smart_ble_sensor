@@ -374,6 +374,18 @@ abstract class AppLocalizations {
   /// **'请输入有效的特征 UUID'**
   String get uuidConfigCharacteristicInvalid;
 
+  /// 特征配置表单-单位标签
+  ///
+  /// In zh, this message translates to:
+  /// **'数据单位'**
+  String get uuidConfigUnitLabel;
+
+  /// 特征配置表单-单位提示
+  ///
+  /// In zh, this message translates to:
+  /// **'例如 ℃、%RH、ppm'**
+  String get uuidConfigUnitHint;
+
   /// 特征配置表单-备注标签
   ///
   /// In zh, this message translates to:
@@ -565,6 +577,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'Service: {uuid}'**
   String monitoringServiceLabel(String uuid);
+
+  /// 特征卡片单位标签
+  ///
+  /// In zh, this message translates to:
+  /// **'单位：{unit}'**
+  String monitoringUnitLabel(String unit);
 
   /// 特征卡片 Characteristic UUID 标签
   ///

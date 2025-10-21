@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -355,6 +355,29 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
     );
   }
 
+  String _formatValueWithUnit(String value, String? unit) {
+    final String trimmedUnit = unit?.trim() ?? '';
+    if (trimmedUnit.isEmpty) {
+      return value;
+    }
+    final String trimmedValue = value.trim();
+    if (trimmedValue.isEmpty || trimmedValue == '--') {
+      return trimmedValue;
+    }
+    return '$value $trimmedUnit';
+  }
+
+  String _configLabelWithUnit(UuidConfig config) {
+    final String baseName = config.name.trim().isNotEmpty
+        ? config.name.trim()
+        : config.characteristicUuid.toUpperCase();
+    final String trimmedUnit = config.unit?.trim() ?? '';
+    if (trimmedUnit.isEmpty) {
+      return baseName;
+    }
+    return '$baseName ($trimmedUnit)';
+  }
+
   Set<String> _selectedUuidSet() => _selectedConfigs
       .map((config) => _normalizeUuid(config.characteristicUuid))
       .toSet();
@@ -384,7 +407,11 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey),
+                  const Icon(
+                    Icons.bluetooth_disabled,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.monitoringConnectRequired,
@@ -567,13 +594,13 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
     final BluetoothProvider bluetoothProvider = context
         .read<BluetoothProvider>();
 
-    List<UuidConfig> allConfigs = await _uuidConfigService
-        .getAllConfigs();
+    List<UuidConfig> allConfigs = await _uuidConfigService.getAllConfigs();
     if (!mounted) return;
 
     if (allConfigs.isEmpty) {
-      final UuidConfig? created =
-          await _showUuidConfigForm(initialConfig: null);
+      final UuidConfig? created = await _showUuidConfigForm(
+        initialConfig: null,
+      );
       if (created == null) {
         _showSnackBar(l10n.monitoringNoSavedConfigs);
         return;
@@ -606,35 +633,41 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
         return StatefulBuilder(
           builder: (context, setState) {
             Future<void> refreshConfigs() async {
-              final List<UuidConfig> refreshed =
-                  await _uuidConfigService.getAllConfigs();
+              final List<UuidConfig> refreshed = await _uuidConfigService
+                  .getAllConfigs();
               setState(() {
                 allConfigs
                   ..clear()
                   ..addAll(refreshed);
-                final Set<String> existingIds =
-                    allConfigs.map((config) => config.id).toSet();
-                tempSelection.removeWhere(
-                  (id) => !existingIds.contains(id),
-                );
+                final Set<String> existingIds = allConfigs
+                    .map((config) => config.id)
+                    .toSet();
+                tempSelection.removeWhere((id) => !existingIds.contains(id));
               });
             }
 
             Future<void> handleEdit(UuidConfig config) async {
-              final UuidConfig? updated =
-                  await _showUuidConfigForm(initialConfig: config);
+              final UuidConfig? updated = await _showUuidConfigForm(
+                initialConfig: config,
+              );
               if (updated == null) return;
 
               final bool success = await _uuidConfigService.saveConfig(updated);
               if (!success) {
                 if (!mounted) return;
-                _showSnackBar(l10n.monitoringConfigSaveFailed, color: Colors.red);
+                _showSnackBar(
+                  l10n.monitoringConfigSaveFailed,
+                  color: Colors.red,
+                );
                 return;
               }
               configsModified = true;
               await refreshConfigs();
               if (!mounted) return;
-              _showSnackBar(l10n.monitoringConfigUpdateSuccess, color: Colors.green);
+              _showSnackBar(
+                l10n.monitoringConfigUpdateSuccess,
+                color: Colors.green,
+              );
             }
 
             Future<void> handleDelete(UuidConfig config) async {
@@ -659,11 +692,15 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
               );
               if (confirmed != true) return;
 
-              final bool success =
-                  await _uuidConfigService.deleteConfig(config.id);
+              final bool success = await _uuidConfigService.deleteConfig(
+                config.id,
+              );
               if (!success) {
                 if (!mounted) return;
-                _showSnackBar(l10n.monitoringConfigDeleteFailed, color: Colors.red);
+                _showSnackBar(
+                  l10n.monitoringConfigDeleteFailed,
+                  color: Colors.red,
+                );
                 return;
               }
               configsModified = true;
@@ -672,18 +709,25 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                 tempSelection.remove(config.id);
               });
               if (!mounted) return;
-              _showSnackBar(l10n.monitoringConfigDeleteSuccess, color: Colors.green);
+              _showSnackBar(
+                l10n.monitoringConfigDeleteSuccess,
+                color: Colors.green,
+              );
             }
 
             Future<void> handleCreate() async {
-              final UuidConfig? created =
-                  await _showUuidConfigForm(initialConfig: null);
+              final UuidConfig? created = await _showUuidConfigForm(
+                initialConfig: null,
+              );
               if (created == null) return;
 
               final bool success = await _uuidConfigService.saveConfig(created);
               if (!success) {
                 if (!mounted) return;
-                _showSnackBar(l10n.monitoringConfigSaveFailed, color: Colors.red);
+                _showSnackBar(
+                  l10n.monitoringConfigSaveFailed,
+                  color: Colors.red,
+                );
                 return;
               }
               configsModified = true;
@@ -692,7 +736,10 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                 tempSelection.add(created.id);
               });
               if (!mounted) return;
-              _showSnackBar(l10n.monitoringConfigCreateSuccess, color: Colors.green);
+              _showSnackBar(
+                l10n.monitoringConfigCreateSuccess,
+                color: Colors.green,
+              );
             }
 
             return AlertDialog(
@@ -713,8 +760,10 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                             const Divider(height: 1, thickness: 0.5),
                         itemBuilder: (context, index) {
                           final UuidConfig config = allConfigs[index];
-                          final bool isChecked =
-                              tempSelection.contains(config.id);
+                          final bool isChecked = tempSelection.contains(
+                            config.id,
+                          );
+                          final String unitText = config.unit?.trim() ?? '';
 
                           void toggleSelection([bool? nextValue]) {
                             final bool shouldSelect = nextValue ?? !isChecked;
@@ -746,6 +795,14 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                                   'Characteristic: ${config.characteristicUuid}',
                                   style: const TextStyle(fontSize: 12),
                                 ),
+                                if (unitText.isNotEmpty)
+                                  Text(
+                                    l10n.monitoringUnitLabel(unitText),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
                                 if (config.description != null &&
                                     config.description!.isNotEmpty)
                                   Text(
@@ -862,8 +919,9 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
       text: initialConfig?.serviceUuid ?? '',
     );
     final TextEditingController characteristicController =
-        TextEditingController(
-      text: initialConfig?.characteristicUuid ?? '',
+        TextEditingController(text: initialConfig?.characteristicUuid ?? '');
+    final TextEditingController unitController = TextEditingController(
+      text: initialConfig?.unit ?? '',
     );
     final TextEditingController descriptionController = TextEditingController(
       text: initialConfig?.description ?? '',
@@ -939,6 +997,15 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
+                    controller: unitController,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: l10n.uuidConfigUnitLabel,
+                      hintText: l10n.uuidConfigUnitHint,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
                     controller: descriptionController,
                     textInputAction: TextInputAction.done,
                     maxLines: 2,
@@ -962,8 +1029,9 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                   return;
                 }
                 final DateTime now = DateTime.now();
-                final String descriptionText =
-                    descriptionController.text.trim();
+                final String descriptionText = descriptionController.text
+                    .trim();
+                final String unitText = unitController.text.trim();
                 final UuidConfig? baseConfig = initialConfig;
                 final UuidConfig result;
                 if (isEditing && baseConfig != null) {
@@ -971,8 +1039,12 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                     name: nameController.text.trim(),
                     serviceUuid: serviceController.text.trim(),
                     characteristicUuid: characteristicController.text.trim(),
-                    description:
-                        descriptionText.isEmpty ? null : descriptionText,
+                    description: descriptionText.isEmpty
+                        ? null
+                        : descriptionText,
+                    unit: unitText.isEmpty ? null : unitText,
+                    clearDescription: descriptionText.isEmpty,
+                    clearUnit: unitText.isEmpty,
                   );
                 } else {
                   result = UuidConfig(
@@ -980,8 +1052,10 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                     name: nameController.text.trim(),
                     serviceUuid: serviceController.text.trim(),
                     characteristicUuid: characteristicController.text.trim(),
-                    description:
-                        descriptionText.isEmpty ? null : descriptionText,
+                    description: descriptionText.isEmpty
+                        ? null
+                        : descriptionText,
+                    unit: unitText.isEmpty ? null : unitText,
                     createdAt: now,
                   );
                 }
@@ -1217,7 +1291,10 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
               const SizedBox(width: 12),
               Text(
                 l10n.monitoringCurrentDataTitle,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1228,6 +1305,11 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
             final bool isActive = statusMap[normalized] ?? false;
             final Color color = _colorForUuid(config.characteristicUuid);
             final String valueText = sensorData?.formattedValue ?? '--';
+            final String unitText = config.unit?.trim() ?? '';
+            final String displayValue = _formatValueWithUnit(
+              valueText,
+              config.unit,
+            );
             final String timeText = sensorData != null
                 ? DateFormat('HH:mm:ss').format(sensorData.timestamp)
                 : '--';
@@ -1258,7 +1340,7 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          config.name,
+                          _configLabelWithUnit(config),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1281,6 +1363,14 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                             color: Colors.black54,
                           ),
                         ),
+                        if (unitText.isNotEmpty)
+                          Text(
+                            l10n.monitoringUnitLabel(unitText),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -1308,7 +1398,7 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        valueText,
+                        displayValue,
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -1487,22 +1577,25 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
               const SizedBox(width: 12),
               Text(
                 l10n.monitoringChartTitle,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-            if (configOrder.length > 1)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildChartLegend(configOrder),
-              ),
-            SizedBox(
-              height: 320,
-              child: LineChart(
-                LineChartData(
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
+          if (configOrder.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildChartLegend(configOrder),
+            ),
+          SizedBox(
+            height: 320,
+            child: LineChart(
+              LineChartData(
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
                     tooltipPadding: const EdgeInsets.all(8),
                     getTooltipColor: (_) => Colors.black87,
                     getTooltipItems: (touchedSpots) {
@@ -1523,9 +1616,13 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                                     spot.spotIndex < history.length)
                                 ? history[spot.spotIndex]
                                 : null;
-                            final String valueText = data != null
+                            final String rawValue = data != null
                                 ? data.value.toStringAsFixed(2)
                                 : spot.y.toStringAsFixed(2);
+                            final String valueText = _formatValueWithUnit(
+                              rawValue,
+                              config.unit,
+                            );
                             final String timeText = data != null
                                 ? timeFormatter.format(data.timestamp)
                                 : timeFormatter.format(
@@ -1536,14 +1633,18 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
                                     ),
                                   );
 
-                        return LineTooltipItem(
-                          l10n.monitoringTooltip(config.name, valueText, timeText),
-                          const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
+                            return LineTooltipItem(
+                              l10n.monitoringTooltip(
+                                _configLabelWithUnit(config),
+                                valueText,
+                                timeText,
+                              ),
+                              const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
                           })
                           .whereType<LineTooltipItem>()
                           .toList();
@@ -1649,7 +1750,7 @@ class _DataMonitoringTabState extends State<_DataMonitoringTab> {
             ),
             const SizedBox(width: 6),
             Text(
-              config.name,
+              _configLabelWithUnit(config),
               style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ],
@@ -1766,6 +1867,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   Set<String> _recordingUuids = <String>{};
   List<String> _displayUuidOrder = <String>[];
   final Map<String, String> _uuidNameByNormalized = <String, String>{};
+  final Map<String, String> _uuidUnitByNormalized = <String, String>{};
   DateTime? _lastRecordTime;
 
   @override
@@ -1826,7 +1928,9 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   Widget _buildRecordingStatus() {
     final l10n = context.l10n;
-    final DateTime? lastTime = _lastRecordTime ?? (_records.isNotEmpty ? _records.last.timestamp : null);
+    final DateTime? lastTime =
+        _lastRecordTime ??
+        (_records.isNotEmpty ? _records.last.timestamp : null);
     final String lastTimeLabel = lastTime == null
         ? '--'
         : DateFormat('HH:mm:ss').format(lastTime.toLocal());
@@ -1864,7 +1968,10 @@ class _RecordsTabState extends State<_RecordsTab> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _isRecording ? Colors.green : Colors.grey,
                   borderRadius: BorderRadius.circular(16),
@@ -1920,7 +2027,7 @@ class _RecordsTabState extends State<_RecordsTab> {
               children: uuidOrderForDisplay
                   .map(
                     (uuid) => Chip(
-                      label: Text(_uuidDisplayName(uuid)),
+                      label: Text(_uuidLabelWithUnit(uuid)),
                       backgroundColor: Colors.blue.withValues(alpha: 0.08),
                     ),
                   )
@@ -1960,9 +2067,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   Widget _buildRecordsList() {
     final l10n = context.l10n;
     if (_isLoadingRecords) {
-      return const Expanded(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const Expanded(child: Center(child: CircularProgressIndicator()));
     }
 
     return Expanded(
@@ -1980,7 +2085,7 @@ class _RecordsTabState extends State<_RecordsTab> {
           ],
         ),
         child: _records.isEmpty
-                        ? Center(
+            ? Center(
                 child: Text(
                   l10n.recordsEmptyMessage,
                   textAlign: TextAlign.center,
@@ -2029,11 +2134,7 @@ class _RecordsTabState extends State<_RecordsTab> {
               style: TextStyle(fontSize: 12, color: Colors.black45),
             )
           else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: chips,
-            ),
+            Wrap(spacing: 8, runSpacing: 8, children: chips),
         ],
       ),
     );
@@ -2052,6 +2153,11 @@ class _RecordsTabState extends State<_RecordsTab> {
     void addChip(String uuid, double? value) {
       if (value == null) return;
       final String displayName = _uuidDisplayName(uuid);
+      final String unit = _unitForUuid(uuid);
+      final String numericText = value.toStringAsFixed(2);
+      final String valueWithUnit = unit.isEmpty
+          ? numericText
+          : '$numericText $unit';
       chips.add(
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -2061,7 +2167,7 @@ class _RecordsTabState extends State<_RecordsTab> {
             border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
           ),
           child: Text(
-            '$displayName: ${value.toStringAsFixed(2)}',
+            '$displayName: $valueWithUnit',
             style: const TextStyle(fontSize: 12, color: Colors.black87),
           ),
         ),
@@ -2098,16 +2204,18 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   Future<bool> _startRecording() async {
     final l10n = context.l10n;
-    final BluetoothProvider bluetoothProvider =
-        Provider.of<BluetoothProvider>(context, listen: false);
+    final BluetoothProvider bluetoothProvider = Provider.of<BluetoothProvider>(
+      context,
+      listen: false,
+    );
 
     if (!bluetoothProvider.isConnected) {
       _showSnackBar(l10n.monitoringConnectRequired, color: Colors.orange);
       return false;
     }
 
-    final List<UuidConfig> configs =
-        await _uuidConfigService.getSelectedConfigs();
+    final List<UuidConfig> configs = await _uuidConfigService
+        .getSelectedConfigs();
     final Set<String> targetUuids = configs
         .map((config) => config.characteristicUuid.trim())
         .where((uuid) => uuid.isNotEmpty)
@@ -2132,6 +2240,7 @@ class _RecordsTabState extends State<_RecordsTab> {
 
     await _recordingSubscription?.cancel();
     final Map<String, String> namesByUuid = <String, String>{};
+    final Map<String, String> unitsByUuid = <String, String>{};
     final List<String> order = <String>[];
     for (final UuidConfig config in configs) {
       final String normalized = _normalizeUuid(config.characteristicUuid);
@@ -2141,6 +2250,10 @@ class _RecordsTabState extends State<_RecordsTab> {
           ? config.name.trim()
           : config.characteristicUuid.trim();
       namesByUuid[normalized] = displayName;
+      final String unitText = config.unit?.trim() ?? '';
+      if (unitText.isNotEmpty) {
+        unitsByUuid[normalized] = unitText;
+      }
     }
     if (mounted) {
       setState(() {
@@ -2149,6 +2262,9 @@ class _RecordsTabState extends State<_RecordsTab> {
         _uuidNameByNormalized
           ..clear()
           ..addAll(namesByUuid);
+        _uuidUnitByNormalized
+          ..clear()
+          ..addAll(unitsByUuid);
       });
     } else {
       _recordingUuids = targetUuids;
@@ -2156,10 +2272,12 @@ class _RecordsTabState extends State<_RecordsTab> {
       _uuidNameByNormalized
         ..clear()
         ..addAll(namesByUuid);
+      _uuidUnitByNormalized
+        ..clear()
+        ..addAll(unitsByUuid);
     }
 
-    _recordingSubscription =
-        _bluetoothService.characteristicDataStream.listen(
+    _recordingSubscription = _bluetoothService.characteristicDataStream.listen(
       (CharacteristicDataEvent event) {
         final String normalizedUuid = _normalizeUuid(event.characteristicUuid);
         if (!_recordingUuids.contains(normalizedUuid)) {
@@ -2218,7 +2336,10 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   void _handleRecordingError(Object error) {
     final l10n = context.l10n;
-    _showSnackBar(l10n.recordsSnackbarRecordingError('$error'), color: Colors.red);
+    _showSnackBar(
+      l10n.recordsSnackbarRecordingError('$error'),
+      color: Colors.red,
+    );
     _stopRecording();
   }
 
@@ -2268,20 +2389,28 @@ class _RecordsTabState extends State<_RecordsTab> {
       _isLoadingRecords = true;
     });
 
-    final List<SensorRecord> storedRecords =
-        await _recordingService.loadRecords();
-    final List<UuidConfig> configs = await _uuidConfigService.getSelectedConfigs();
-    final DateTime? lastTime =
-        storedRecords.isNotEmpty ? storedRecords.last.timestamp : null;
-    final List<String> order =
-        _csvExportService.collectCharacteristicUuids(storedRecords);
+    final List<SensorRecord> storedRecords = await _recordingService
+        .loadRecords();
+    final List<UuidConfig> configs = await _uuidConfigService
+        .getSelectedConfigs();
+    final DateTime? lastTime = storedRecords.isNotEmpty
+        ? storedRecords.last.timestamp
+        : null;
+    final List<String> order = _csvExportService.collectCharacteristicUuids(
+      storedRecords,
+    );
     final Map<String, String> names = <String, String>{};
+    final Map<String, String> units = <String, String>{};
     for (final UuidConfig config in configs) {
       final String normalized = _normalizeUuid(config.characteristicUuid);
       if (normalized.isEmpty) continue;
       names[normalized] = config.name.trim().isNotEmpty
           ? config.name.trim()
           : config.characteristicUuid.trim();
+      final String unitText = config.unit?.trim() ?? '';
+      if (unitText.isNotEmpty) {
+        units[normalized] = unitText;
+      }
     }
 
     if (!mounted) return;
@@ -2292,11 +2421,12 @@ class _RecordsTabState extends State<_RecordsTab> {
         ..addAll(storedRecords);
       _isLoadingRecords = false;
       _displayUuidOrder = order;
-      if (names.isNotEmpty) {
-        _uuidNameByNormalized
-          ..clear()
-          ..addAll(names);
-      }
+      _uuidNameByNormalized
+        ..clear()
+        ..addAll(names);
+      _uuidUnitByNormalized
+        ..clear()
+        ..addAll(units);
       _lastRecordTime = lastTime;
     });
   }
@@ -2340,7 +2470,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                 children: exportUuids
                     .map(
                       (uuid) => Chip(
-                        label: Text(_uuidDisplayName(uuid)),
+                        label: Text(_uuidLabelWithUnit(uuid)),
                         backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       ),
                     )
@@ -2399,8 +2529,7 @@ class _RecordsTabState extends State<_RecordsTab> {
         orderedCharacteristicUuids: exportOrder,
       );
       final int fileSize = await _csvExportService.getFileSize(file);
-      final String formattedSize =
-          _csvExportService.formatFileSize(fileSize);
+      final String formattedSize = _csvExportService.formatFileSize(fileSize);
 
       if (mounted) Navigator.pop(context);
 
@@ -2447,7 +2576,9 @@ class _RecordsTabState extends State<_RecordsTab> {
             const SizedBox(height: 8),
             Text('${l10n.recordsExportSuccessSizeLabel} $fileSize'),
             Text('${l10n.recordsExportSuccessRecordsLabel} ${_records.length}'),
-            Text('${l10n.recordsExportSuccessFeaturesLabel} ${exportUuids.length}'),
+            Text(
+              '${l10n.recordsExportSuccessFeaturesLabel} ${exportUuids.length}',
+            ),
             if (exportUuids.isNotEmpty) ...[
               const SizedBox(height: 8),
               Wrap(
@@ -2456,7 +2587,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                 children: exportUuids
                     .map(
                       (uuid) => Chip(
-                        label: Text(_uuidDisplayName(uuid)),
+                        label: Text(_uuidLabelWithUnit(uuid)),
                         backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       ),
                     )
@@ -2528,8 +2659,7 @@ class _RecordsTabState extends State<_RecordsTab> {
     List<UuidConfig> configs,
     Set<String> targetUuids,
   ) async {
-    final Map<String, bool> activeStatus =
-        bluetoothProvider.notificationStatus;
+    final Map<String, bool> activeStatus = bluetoothProvider.notificationStatus;
 
     final Set<String> pendingUuids = targetUuids
         .where((uuid) => !(activeStatus[uuid] ?? false))
@@ -2546,8 +2676,9 @@ class _RecordsTabState extends State<_RecordsTab> {
     for (final UuidConfig config in configs) {
       final String trimmedCharacteristic = config.characteristicUuid.trim();
       if (trimmedCharacteristic.isEmpty) continue;
-      final String normalizedCharacteristic =
-          _normalizeUuid(trimmedCharacteristic);
+      final String normalizedCharacteristic = _normalizeUuid(
+        trimmedCharacteristic,
+      );
       if (!pendingUuids.contains(normalizedCharacteristic)) continue;
 
       final String serviceUuid = config.serviceUuid.trim();
@@ -2556,11 +2687,8 @@ class _RecordsTabState extends State<_RecordsTab> {
       } else {
         final String normalizedService = _normalizeUuid(serviceUuid);
         serviceOriginal.putIfAbsent(normalizedService, () => serviceUuid);
-        final Map<String, String> characteristicMap =
-            groupedByService.putIfAbsent(
-              normalizedService,
-              () => <String, String>{},
-            );
+        final Map<String, String> characteristicMap = groupedByService
+            .putIfAbsent(normalizedService, () => <String, String>{});
         characteristicMap[normalizedCharacteristic] = trimmedCharacteristic;
       }
     }
@@ -2597,16 +2725,35 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   void _showSnackBar(String message, {Color color = Colors.blue}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   String _normalizeUuid(String uuid) => uuid.trim().toLowerCase();
 
   String _uuidDisplayName(String uuid) {
     final String normalized = _normalizeUuid(uuid);
-    return _uuidNameByNormalized[normalized] ?? uuid.toUpperCase();
+    final String? rawName = _uuidNameByNormalized[normalized];
+    if (rawName == null || rawName.trim().isEmpty) {
+      return uuid.toUpperCase();
+    }
+    return rawName.trim();
+  }
+
+  String _unitForUuid(String uuid) {
+    final String normalized = _normalizeUuid(uuid);
+    final String? unit = _uuidUnitByNormalized[normalized];
+    if (unit == null) return '';
+    return unit.trim();
+  }
+
+  String _uuidLabelWithUnit(String uuid) {
+    final String name = _uuidDisplayName(uuid);
+    final String unit = _unitForUuid(uuid);
+    if (unit.isEmpty) {
+      return name;
+    }
+    return '$name ($unit)';
   }
 }
-

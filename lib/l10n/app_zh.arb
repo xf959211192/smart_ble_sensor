@@ -181,6 +181,14 @@
     "description": "特征配置表单-特征 UUID 校验提示"
   },
   "uuidConfigCharacteristicInvalid": "请输入有效的特征 UUID",
+  "@uuidConfigUnitLabel": {
+    "description": "特征配置表单-单位标签"
+  },
+  "uuidConfigUnitLabel": "数据单位",
+  "@uuidConfigUnitHint": {
+    "description": "特征配置表单-单位提示"
+  },
+  "uuidConfigUnitHint": "例如 ℃、%RH、ppm",
   "@uuidConfigDescriptionLabel": {
     "description": "特征配置表单-备注标签"
   },
@@ -343,6 +351,15 @@
     }
   },
   "monitoringServiceLabel": "Service: {uuid}",
+  "@monitoringUnitLabel": {
+    "description": "特征卡片单位标签",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoringUnitLabel": "单位：{unit}",
   "@monitoringCharacteristicLabel": {
     "description": "特征卡片 Characteristic UUID 标签",
     "placeholders": {

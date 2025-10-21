@@ -151,6 +151,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter a valid characteristic UUID';
 
   @override
+  String get uuidConfigUnitLabel => 'Unit';
+
+  @override
+  String get uuidConfigUnitHint => 'e.g. ℃, %RH, ppm';
+
+  @override
   String get uuidConfigDescriptionLabel => 'Notes';
 
   @override
@@ -257,6 +263,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String monitoringServiceLabel(String uuid) {
     return 'Service: $uuid';
+  }
+
+  @override
+  String monitoringUnitLabel(String unit) {
+    return 'Unit: $unit';
   }
 
   @override

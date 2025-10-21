@@ -149,6 +149,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get uuidConfigCharacteristicInvalid => '请输入有效的特征 UUID';
 
   @override
+  String get uuidConfigUnitLabel => '数据单位';
+
+  @override
+  String get uuidConfigUnitHint => '例如 ℃、%RH、ppm';
+
+  @override
   String get uuidConfigDescriptionLabel => '备注';
 
   @override
@@ -252,6 +258,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String monitoringServiceLabel(String uuid) {
     return 'Service: $uuid';
+  }
+
+  @override
+  String monitoringUnitLabel(String unit) {
+    return '单位：$unit';
   }
 
   @override
