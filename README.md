@@ -116,6 +116,11 @@ This command runs the unit tests, including coverage for the multi-channel CSV e
 
 ## Release Highlights
 
+- **v1.4.0 (2025-01-21)**  
+  - Characteristic presets now支持配置数据单位，并在实时监控、历史记录与导出中同步显示  
+  - 调整导出摘要与图表提示，确保多通道数据展示一致  
+  - 版本号提升至 `1.4.0+4` 并重新生成发行 APK  
+
 - **v1.3.0 (2025-01-17)**  
   - Added CSV copy/save options with file metadata feedback  
   - Made the monitoring page scrollable to eliminate bottom overflow issues  
